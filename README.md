@@ -34,7 +34,7 @@ Omit `-NoWait` to keep the script attached until Skyrim exits and collect the SK
 
 Tracy is built with `TRACY_ON_DEMAND`, so nothing is recorded until a Tracy profiler connects. Launch the game, then connect the Tracy profiler (0.14.0, matching the `ThirdParty/tracy` submodule) to `localhost`.
 
-## Current coverage
+## Default coverage
 
 Whole-function detours, installed at `kPostLoad` in a single Detours transaction:
 

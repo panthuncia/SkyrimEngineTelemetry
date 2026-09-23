@@ -20,19 +20,17 @@
 35423   Jobs      JobListManager::ServingThread::ThreadProc
 447405  Jobs      BDKJobThread::ThreadProc
 
-# Startup/loading detail. Names are based on CommonLib types plus Ghidra
+# Names are based on CommonLib types plus Ghidra
 # callers, callees, and decompilation for Skyrim 1.6.1170.
 36547   Startup   Engine::Initialize
 36548   Startup   Engine::InitializeVMAndGameplay
 13760   Loading   TES::LoadPluginFile
 13784   Loading   TES::PostLoadInitialization
 
-# Asynchronous engine behavior.
 90259   Video     BGSMoviePlayer::DecodeFrame
 75716   Tasks     IOManager::RunQueuedTasks
 69809   Resource  BSResource::EntryDB::ProcessTasks
 
-# First report-driven child layer.
 69380   Jobs      BSJobs::JobThread::ProcessJobs
 39039   Jobs      JobListManager::ProcessJobs
 36549   Frame     Main::Run
@@ -41,8 +39,6 @@
 18882   Loading   TESObjectCELL::InitializeLoadedForms
 20455   Loading   TESWorldSpace::InitItem
 
-# Second report-driven child layer: high-cost startup, loading, VM, frame, and
-# resource operations resolved with Ghidra and CommonLib type information.
 36554       Startup   Engine::InitializeSceneGraph
 75445,77226 Startup   BSGraphics::Renderer::Initialize
 13690       Loading   TESForm::LoadRecord
@@ -57,8 +53,6 @@
 75814       Resource  BSResource::EntryDB::ProcessEntry
 13894,13979 Loading   TESFile::SeekNextForm
 
-# Third report-driven child layer. These split the remaining large aggregate
-# loading and VM scopes into operations developers can act on directly.
 105624  Startup   BSShaderManager::InitializeResources
 82142   Frame     Main::ProcessQueuedTasks
 104582  Papyrus   BSScript::CompiledScriptLoader::ReadObjects
@@ -80,8 +74,6 @@
 30378   Loading   NavMeshInfoMap::Load
 18074   Loading   TESObjectWEAP::Load
 
-# Fourth report-driven layer: steady-state job, resource, frame, background,
-# and render work exposed after the loading/VM scopes were split.
 69378       Jobs      BSJobs::JobThread::ExecuteJobs
 76073       Resource  BSTextureDB::ProcessEntry
 63517       Resource  BShkbHkxDB::ProcessEntry
@@ -100,9 +92,6 @@
 26175       Render    Main::RenderSceneGeometry
 76551       Render    NiCullingProcess::Process
 
-# Fifth report-driven layer: concrete job payloads and render passes. These are
-# the scopes that make steady-state frame behavior readable rather than merely
-# showing time in the generic worker dispatch loop.
 18875       Jobs      UpdateAnimatedRefsJob
 41448       Jobs      UpdateActor
 41453       Jobs      RunOneActorAnimationUpdateJob
@@ -127,9 +116,6 @@
 51668       UI        Compass::Update
 69948       Tasks     BSResource::ArchiveRegistrationTaskData::Run
 
-# Sixth report-driven layer: children which accounted for nearly all remaining
-# self-time in the fifth-layer scopes. Names with "Impl" describe their observed
-# parent operation while retaining a stable, developer-readable boundary.
 18894       Jobs      TESObjectCELL::UpdateAnimatedReferences
 41303       Jobs      ActorUpdateJobs::ExecutePayload
 37350       Jobs      PlayerCharacter::JobUpdate
@@ -159,8 +145,6 @@
 36581       Frame     Main::UpdateWorldState
 27093       Frame     Main::UpdateSceneState
 
-# Seventh report-driven layer: deeper animation, decal, culling, resource,
-# Papyrus, and per-frame operations exposed by the 121-zone capture.
 107642      Render    BSBatchRenderer::RenderPass
 41302       Jobs      ActorUpdateJobs::PreparePayload
 70302       Jobs      BGSDecalNode::UpdateSelectedDownwardPass
@@ -203,8 +187,6 @@
 36655       Jobs      Main::QueueSceneUpdateJobs
 19366       Jobs      BSFadeNode::UpdateGeometry
 
-# Eighth report-driven layer: remaining high-signal children from the 162-zone
-# capture. External timing/overlay helpers are deliberately not hooked.
 76553       Render    BSCullingProcess::ProcessObject
 76018       Resource  BSTextureDB::CreateQueuedTexture
 77353       Startup   BSGraphics::CreateRenderTargets
@@ -235,8 +217,6 @@
 70303       Jobs      BGSDecalNode::UpdateUpwardPass
 105486      Jobs      BSFadeNode::UpdateAnimationControllers
 
-# Ninth report-driven layer: resource construction, Havok simulation stages,
-# animation graph internals, movement/pathing, UI display, and VM storage.
 70716       Resource  BSTextureDB::ConstructTextureResource
 63447       Resource  BShkbHkxDB::DeserializeAnimationData
 104545      Papyrus   BSScript::CompiledScriptLoader::ReadStringTable
@@ -272,8 +252,6 @@
 67315,68617 Jobs      BSInputDeviceManager::PollInputDevices
 37001       Jobs      TESObjectCELL::UpdateReferences
 
-# Tenth report-driven layer: stream loading, behavior graphs, shader-property
-# updates, path building, movement arbitration, and continuous-physics stages.
 69655       Papyrus   BSResource::ArchiveStream::Read
 63442       Resource  BShkbHkxDB::DBData::Load
 14032       Loading   TESFile::LoadFormData
@@ -304,8 +282,6 @@
 61809       Physics   hkpContinuousSimulation::ProcessToiEvents
 61774       Physics   ahkpWorld::StepActions
 
-# Eleventh report-driven layer: narrower asset, VM, behavior, skinning,
-# particle, character-physics, input, and world-streaming operations.
 65120       Resource  hkLoader::Load
 56875       Loading   TESModelDB::LoadModel
 69785       Papyrus   BSResource::ArchiveStream::ReadData
@@ -339,8 +315,6 @@
 15372       Tasks     GrassManager::ProcessTask
 31835       Jobs      BGSTerrainManager::FinalizeUpdate
 
-# Twelfth report-driven layer: Havok buffered I/O, procedure trees, animation
-# events, shadows, path building, UI invocation, and cell-animation jobs.
 64843       Resource  hkBufferedStreamReader::Read
 53975       Loading   TESInitScriptEventSink::Handle
 56949       Loading   TESModelDB::FinalizeModel
@@ -369,9 +343,6 @@
 39943       Jobs      AIUpdateJob::Run
 51675       UI        EnemyHealth::UpdateTarget
 
-# Thirteenth report-driven layer: specialized VM binding, buffered streaming,
-# path finalization, visibility, AI procedures, and character-physics work.
-# Generic locks, fixed-string helpers, and pointer lookup are excluded.
 64871       Resource  hkBufferedStreamReader::FillBuffer
 53574       Papyrus   SkyrimScript::ObjectBindPolicy::FindBoundObject
 14666       Loading   ActorValueInfo::SetFormID
@@ -401,8 +372,6 @@
 104193      Papyrus   BSMemStorage::Read
 75766       Resource  BSResource::IEntryDB::PostFlushNotify::Notify
 
-# Fourteenth report-driven layer: archive/loose-file reads, VM object binding,
-# FaceGen visibility, IK/clip generation, sandbox execution, and geometry culling.
 69666       Resource  BSResource::CompressedArchiveStream::Read
 64867       Resource  hkBufferedStreamReader::ReadBlock
 70032       Resource  BSResource::LooseFileStream::Read
@@ -427,9 +396,6 @@
 32703       AI        ActorProcessManager::UpdateHighProcess
 64742       Physics   HavokTypeRegistry::FinishLoadedObject
 
-# Fifteenth report-driven layer: first deterministic in-world capture. These
-# scopes cover camera, ragdoll, actor animation, NPC/reference creation,
-# lighting passes, pathing, foot-placement IK, and active-cell frame work.
 110000      Resource  BSResource::CompressedArchiveStream::Decompress
 57658       Resource  hkLoader::LoadPackfileData
 36641       Frame     Main::InitializeWorld
@@ -468,9 +434,6 @@
 75595       Render    NiPSysModifierBoolCtlr::Update
 91717       Tasks     BSPathBuilder::QueuePath
 
-# Sixteenth report-driven layer: deeper functions observed only after entering
-# an active cell, including animated-cell jobs, local-map camera, inventory,
-# reference animation graphs, patrol AI, aliases, and dynamic-shape visibility.
 57660       Resource  hkLoader::ParsePackfileObjects
 110036      Resource  BSResource::DecompressArchiveBlock
 36604       Frame     TES::UpdateTimeAndWeather
@@ -506,9 +469,6 @@
 11595       Loading   TESForm::LoadGameData
 70926       Render    BSDynamicTriShape::OnVisible
 
-# Seventeenth report-driven layer: quest/frame ticking, first-person camera,
-# path smoothing, collision queries, skin partitions, SSAO, worldspace loading,
-# behavior modifiers, and movement-controller work from the active-cell run.
 75738       Loading   QueuedFile::Process
 441548      Loading   TESFile::LoadQueuedForm
 57820       Resource  hkLoader::ResolveClassNames
@@ -542,9 +502,6 @@
 83125       UI        GFxMovieRoot::ProcessInput
 108492      Render    BSShadowDirectionalLight::UpdateShadowMap
 
-# Eighteenth report-driven layer: load-time gaps exposed before the deterministic
-# cell stabilized, including form construction, leveled inventory, equipment,
-# movement-controller creation, VM object binding, and script-store operations.
 53557       Papyrus   SkyrimScript::ObjectBindPolicy::Update
 13932       Loading   TESFile::LoadFormRecordData
 75709       Frame     IOManager::ProcessCompletedRequests
@@ -592,9 +549,6 @@
 98654,105309 Papyrus Object::Destroy
 53807       Papyrus   SkyrimScript::Store::ReleaseObject
 
-# Nineteenth report-driven layer: long, stable in-world capture with Start On
-# Save isolated. Covers conditions, quests, camera state, AI scheduling, actor
-# positioning, sky, FaceGen traversal, render passes, and character physics.
 31780       Engine    GameState::Update
 29090,29924 Jobs      TESConditionItem::IsTrue
 108600      Render    BSParabolicCullingProcess::ProcessObject
@@ -634,9 +588,6 @@
 37277       Jobs      Character::UpdateCombatState
 39207       Jobs      AIUpdateJob::ProcessActors
 
-# Twentieth report-driven layer: targeted gameplay children after the long-run
-# pass, including crosshair selection, native VM queries, quest events,
-# compressed animation, character proxies, foot IK, UI text, and culling lists.
 53611       Papyrus   SkyrimScript::ObjectBindPolicy::ResolveBoundObject
 70050       Resource  BSResource::CompressedArchiveStream::ReadDirectory
 104845      Papyrus   BSScript::Internal::VirtualMachine::CallFunction
@@ -681,9 +632,6 @@
 104297      Papyrus   BSScript::Internal::VirtualMachine::QueueStack
 104875      Papyrus   BSScript::Internal::VirtualMachine::ResumeLatentCall
 
-# Twenty-first report-driven layer: quest state, Scaleform/HUD advancement,
-# look-at and special-idle AI, animation variable binding, broadphase physics,
-# VM tasklets, leveled lists, aliases, and character-proxy/contact processing.
 53619       Papyrus   SkyrimScript::ObjectBindPolicy::ProcessPendingBindings
 25115       Frame     TESQuest::UpdateCurrentStage
 104308      Papyrus   BSScript::Internal::VirtualMachine::ProcessStack
@@ -726,9 +674,6 @@
 24014       Loading   BGSRefAlias::InitItem
 70954       Jobs      BSDynamicTriShape::UpdateVertexData
 
-# Twenty-second report-driven layer: Papyrus condition/stack processing plus
-# audio, FaceGen morphs, animation graphs, queued trees, dialogue, patrol AI,
-# container/location loading, and UI vector-shape rendering.
 12051       Papyrus   VMConditionalVariable::Resolve
 105080      Papyrus   BSScript::Internal::VirtualMachine::FindObject
 104353      Papyrus   BSScript::Internal::VirtualMachine::ProcessEventQueue
@@ -778,9 +723,6 @@
 68674       Startup   BSAudioManager::Initialize
 53590       Papyrus   SkyrimScript::ObjectBindPolicy::ProcessBinds
 
-# Twenty-third report-driven layer: deeper render/animation stages plus input,
-# actor tracking, special-idle setup, raycasts, scene packages, Mist menu,
-# parabolic shadows, rigid-body motion, and movement-driven control.
 84585       UI        GFxMovieRoot::RenderDisplayList
 106578      Jobs      BSShaderAccumulator::FinalizeGeometryJob
 76555       Render    BSCullingProcess::AppendNonAccum
@@ -833,9 +775,6 @@
 53530       Papyrus   SkyrimScript::HandlePolicy::Update
 61329       Physics   ahkpWorld::UpdateActions
 
-# Twenty-fourth report-driven layer: first stabilized exterior-cell capture.
-# Covers combat/detection, HDR/DOF, grass occlusion, exterior camera/worldspace,
-# ground support, audio, behavior graphs, and exterior collision/streaming.
 69418       Loading   Archive::ReadEntry
 75742       Frame     QueuedFile::Complete
 75739       Resource  QueuedFile::LoadData
@@ -878,9 +817,6 @@
 65140       Resource  hkLoader::ResolveExternalReferences
 58383       Jobs      hkbBehaviorGraph::UpdateActiveNodes
 
-# Twenty-fifth report-driven layer: exterior grid traversal, detection/combat,
-# movement planning, world casts, fonts, texture/location/idle loading,
-# simultaneous procedures, persistence, and height-field character physics.
 69029       Loading   BSFile::Read
 75634       Frame     IOManager::ProcessExteriorRequests
 75768       Resource  BSQueuedResourceCollectionBase::Process
@@ -933,9 +869,6 @@
 15157,15330 Papyrus  BGSDynamicPersistenceManager::PromoteReference
 18365       Papyrus   BGSLocation::IsInLocation
 
-# Twenty-sixth report-driven layer: exterior cell loading, clone creation,
-# broadphase casts, behavior nodes, character movement, particles, impacts,
-# sound descriptors, expression/foot-IK modifiers, and actor movement.
 70289       Jobs      BSFaceGenNiNode::AttachChild
 33217       AI        ActorProcessManager::UpdatePackages
 31754       Frame     PlayerCamera::UpdatePosition
@@ -991,9 +924,6 @@
 41633       Jobs      ActorMover::Update
 17776       Loading   TESObjectARMOFactory::Create
 
-# Twenty-seventh report-driven layer: first stabilized dungeon capture. Covers
-# ragdolls, rooms/multibounds, traps, avoidance, movement events, quest markers,
-# nearby actors, character rigid-body callbacks, and dungeon particle systems.
 63552       Physics   BShkbAnimationGraph::UpdateRagdoll
 19165       Jobs      TESObjectCELL::UpdateRoomVisibility
 58290       Jobs      hkbRagdollDriver::Update
@@ -1045,9 +975,6 @@
 65560       Jobs      hkaSplineCompressedAnimation::FinalizeSample
 50785       Frame     PlayerCamera::UpdateFirstPerson
 
-# Twenty-eighth report-driven layer: final high-signal dungeon tier. Covers
-# water collision, shadows/lights, triggers, NPC avoidance, sleep procedures,
-# hazards, attack data, portals, behavior state machines, and script streaming.
 63563       Physics   BShkbAnimationGraph::UpdateRagdollWorld
 106400      Render    ShadowSceneNode::UpdateLights
 32103       Physics   BGSWaterCollisionManager::Update
@@ -1105,6 +1032,5 @@
 69840       Papyrus   PrepareStreamForScriptFile
 104594      Papyrus   BSScript::CompiledScriptLoader::ReadDebugInfo
 
-# Layer 29: report/Ghidra-identified native HID worker roots.
 68940       Input     HID Device Enumeration Thread
 68931       Input     HID Device I/O Thread
