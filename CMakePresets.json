@@ -1,0 +1,62 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
+        "SET_ENABLE_AE": "ON"
+      }
+    },
+    {
+      "name": "vs2026-msvc",
+      "displayName": "Visual Studio 2026 MSVC",
+      "inherits": "base",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "toolset": "v145"
+    },
+    {
+      "name": "vs2026-clangcl",
+      "displayName": "Visual Studio 2026 clang-cl",
+      "inherits": "base",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "toolset": "ClangCL"
+    },
+    {
+      "name": "vs2022-msvc",
+      "displayName": "Visual Studio 2022 MSVC",
+      "inherits": "base",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "toolset": "v143"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "release-msvc",
+      "configurePreset": "vs2026-msvc",
+      "configuration": "Release"
+    },
+    {
+      "name": "relwithdebinfo-msvc",
+      "configurePreset": "vs2026-msvc",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "debug-msvc",
+      "configurePreset": "vs2026-msvc",
+      "configuration": "Debug"
+    },
+    {
+      "name": "release-clangcl",
+      "configurePreset": "vs2026-clangcl",
+      "configuration": "Release"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# Signature-agnostic zones, installed at kPostLoad. One zone per line:
+#
+#   <id> <category> <name>             Address Library ID for the running game
+#   <seId>,<aeId> <category> <name>    or an SE/AE pair; the plugin picks its runtime's
+#
+# Each line detours the function at that ID and opens a zone (Tracy,
+# BasicTelemetry, and the sampler's zone stack) around every call. No signature
+# is needed. tools/attribution/analyze.py prints ready-made lines for the
+# hottest unscoped functions. Blank lines and text after '#' or ';' are ignored.
+#
+# Example (already zoned by the built-in hooks, so left commented out):
+# 100424,107142  Render  Main::RenderWorld

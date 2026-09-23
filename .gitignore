@@ -1,0 +1,19 @@
+build/
+out/
+.vs/
+*.user
+*.suo
+*.VC.db
+*.VC.VC.opendb
+*.ipch
+*.pdb
+*.obj
+*.ilk
+*.log
+.vscode/
+install-prefix.txt
+
+# tools/attribution
+tools/attribution/.cache/
+tools/attribution/commonlib_ids.json
+__pycache__/

@@ -1,0 +1,9 @@
+[submodule "CommonLibSSE"]
+	path = CommonLibSSE
+	url = https://github.com/powerof3/CommonLibSSE.git
+[submodule "BasicTelemetry"]
+	path = BasicTelemetry
+	url = https://github.com/panthuncia/BasicTelemetry
+[submodule "ThirdParty/tracy"]
+	path = ThirdParty/tracy
+	url = https://github.com/wolfpld/tracy.git

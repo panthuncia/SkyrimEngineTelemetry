@@ -1,0 +1,18 @@
+{
+  "name": "skyrim-engine-telemetry",
+  "version-string": "0.1.0",
+  "description": "SKSE plugin that instruments Skyrim's engine threads with BasicTelemetry/Tracy zones.",
+  "license": "GPL-3.0-or-later",
+  "supports": "windows & x64",
+  "dependencies": [
+    "commonlib-shared",
+    "detours",
+    {
+      "name": "spdlog",
+      "default-features": false,
+      "features": [
+        "wchar"
+      ]
+    }
+  ]
+}
