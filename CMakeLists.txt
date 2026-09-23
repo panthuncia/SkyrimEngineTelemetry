@@ -35,8 +35,8 @@ add_subdirectory(ThirdParty/tracy EXCLUDE_FROM_ALL)
 # Satisfy find_package(Tracy CONFIG) calls (e.g. BasicTelemetry's) with the submodule target.
 file(WRITE "${CMAKE_FIND_PACKAGE_REDIRECTS_DIR}/tracy-config.cmake" "# Provided by ThirdParty/tracy via add_subdirectory\n")
 
-set(BASICTELEMETRY_BUILD_ARTIFACTS OFF CACHE BOOL "Build BasicTelemetry artifact writers" FORCE)
-set(BASICTELEMETRY_BUILD_TOOLS OFF CACHE BOOL "Build BasicTelemetry tools" FORCE)
+set(BASICTELEMETRY_BUILD_ARTIFACTS ON CACHE BOOL "Build BasicTelemetry artifact writers" FORCE)
+set(BASICTELEMETRY_BUILD_TOOLS ON CACHE BOOL "Build BasicTelemetry tools" FORCE)
 set(BASICTELEMETRY_BUILD_TESTS OFF CACHE BOOL "Build BasicTelemetry tests" FORCE)
 set(BASICTELEMETRY_ENABLE_TRACY ON CACHE BOOL "Build Tracy integration" FORCE)
 add_subdirectory(BasicTelemetry EXCLUDE_FROM_ALL)
@@ -99,6 +99,8 @@ set(SET_SOURCES
 	src/Sampler/Symbolizer.h
 	src/Telemetry/Zone.cpp
 	src/Telemetry/Zone.h
+	src/Telemetry/BasicTelemetrySession.cpp
+	src/Telemetry/BasicTelemetrySession.h
 	src/Threads/ThreadHooks.cpp
 	src/Threads/ThreadHooks.h
 	src/Threads/ThreadRegistry.cpp
@@ -121,7 +123,8 @@ add_library("${PROJECT_NAME}" SHARED ${SET_SOURCES} $<TARGET_OBJECTS:SETZoneHook
 
 target_compile_features("${PROJECT_NAME}" PRIVATE cxx_std_23)
 
-target_link_libraries("${PROJECT_NAME}" PRIVATE CommonLibSSE::CommonLibSSE BasicTelemetry::Tracy spdlog::spdlog SET::Detours)
+target_link_libraries("${PROJECT_NAME}" PRIVATE CommonLibSSE::CommonLibSSE BasicTelemetry::Tracy BasicTelemetry::Artifacts spdlog::spdlog SET::Detours)
+add_dependencies("${PROJECT_NAME}" basic-telemetry)
 
 target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 

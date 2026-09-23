@@ -4,6 +4,7 @@
 #include "Hooks/ZoneHooks.h"
 #include "Sampler/StackSampler.h"
 #include "Settings.h"
+#include "Telemetry/BasicTelemetrySession.h"
 #include "Threads/ThreadHooks.h"
 #include "Threads/ThreadRegistry.h"
 
@@ -65,6 +66,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 	REX::INFO("Loading {} {}"sv, PLUGIN_NAME, PLUGIN_VERSION.string());
 
 	EngineTelemetry::Settings::Load();
+	EngineTelemetry::BasicTelemetrySession::Start();
 
 	// Hook thread creation before the engine starts most of its threads, then
 	// record whatever is already running.

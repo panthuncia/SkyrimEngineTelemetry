@@ -22,13 +22,19 @@ The plugin is written to `build/<preset>/out/<config>/SKSE/Plugins/SkyrimEngineT
 
 Put a Skyrim `Data` directory or MO2 mod folder path in `install-prefix.txt` (gitignored), or pass `-DSET_SKYRIM_DIR=...`. With that set, every build auto-installs to `<dir>/SKSE/Plugins`, and a `deploy` target is available.
 
-For the standard local Skyrim/MO2 layout, `tools/run-mo2.ps1` configures and builds the plugin, deploys it to `C:\Modding\MO2\mods\Skyrim Engine Telemetry`, enables the mod in the selected profile, enables the sampler, and launches SKSE through MO2:
+For the standard local Skyrim/MO2 layout, `tools/run-mo2.ps1` configures and builds the plugin, deploys it to `C:\Modding\MO2\mods\Skyrim Engine Telemetry`, enables the mod in the selected profile, enables the sampler and BasicTelemetry summary capture, and launches SKSE through MO2:
 
 ```powershell
 .\tools\run-mo2.ps1 -NoWait
 ```
 
 Omit `-NoWait` to keep the script attached until Skyrim exits and collect the SKSE logs into `build/game-runs/<timestamp>`.
+
+Each run writes BasicTelemetry artifacts directly to `build/game-runs/<timestamp>/basic-telemetry`. Use `-BasicTelemetryMode Trace` when individual scope events and parent relationships are needed, or `-BasicTelemetryMode Off` to disable it. The build also produces `basic-telemetry.exe`, which can query `profile.sqlite`, for example:
+
+```powershell
+.\build\vs2026-msvc\BasicTelemetry\RelWithDebInfo\basic-telemetry.exe query .\build\game-runs\<timestamp>\basic-telemetry --metric self --top 25
+```
 
 ## Profiling
 
@@ -91,6 +97,14 @@ The plugin patches the game executable's `CreateThread`, `_beginthread` and `_be
 | `[Sampler] bEnable` | 0 | Run the sampler. |
 | `[Sampler] iIntervalUs` | 1000 | Time between sampling rounds. Each round samples every thread that used CPU since its last sample. |
 | `[Sampler] iReportIntervalSec` | 30 | How often the cumulative report is rewritten. |
+| `[BasicTelemetry] bCapture` | 0 | Start the in-process timing/statistics session. The runner enables it. |
+| `[BasicTelemetry] sMode` | Summary | `Summary` aggregates distributions; `Trace` also retains individual events. |
+| `[BasicTelemetry] sOutputDirectory` | next to plugin | Artifact output directory. |
+| `[BasicTelemetry] iSnapshotIntervalSec` | 10 | Periodically rewrite artifacts so forced exits still retain data. |
+| `[BasicTelemetry] iMaximumTraceEvents` | 1000000 | Maximum retained events in Trace mode. |
+| `[BasicTelemetry] bWriteSqlite` | 1 | Write the queryable `profile.sqlite` database. |
+| `[BasicTelemetry] bWriteMarkdown` | 1 | Write the human-readable `summary.md`. |
+| `[BasicTelemetry] bMeasureThreadCpuTime` | 0 | Measure per-scope thread CPU time; off by default due to hot-path overhead. |
 
 For each thread, the sampler:
 
@@ -109,4 +123,4 @@ Each sample is classed as zoned, unscoped, blocked (inside a syscall) or idle. E
 - Zone the engine's worker threads (the job system, IO/`BSResource` streaming, the AI linear task threads, Havok, and audio), guided by the sampler's unscoped-work trees.
 - Call-site zone hooks (`write_call`) for hot shared helpers, so a zone can cover one caller's use of a function.
 - Add per-pass render detail: shadow maps via the `BSShadowLight` vfuncs, the `BSShaderAccumulator`/`BSBatchRenderer` passes, and image-space effects.
-- Add a BasicTelemetry session with artifact output for offline analysis.
+- Add capture controls for excluding startup/menu frames and delimiting repeatable benchmark windows.

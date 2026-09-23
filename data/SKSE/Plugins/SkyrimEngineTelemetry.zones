@@ -1034,3 +1034,10 @@
 
 68940       Input     HID Device Enumeration Thread
 68931       Input     HID Device I/O Thread
+
+# Layer 30: PreparePlayerView job submission, shadow-light traversal, and the
+# completion barrier identified from the 1.6.1170 Ghidra call graph.
+69349       Jobs      JobList::QueueJob
+69376       Jobs      JobList::BeginExecution
+69377       Jobs      JobList::WaitForCompletion
+108616      Render    BSShadowFrustumLight::Render

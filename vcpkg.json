@@ -7,6 +7,8 @@
   "dependencies": [
     "commonlib-shared",
     "detours",
+    "nlohmann-json",
+    "sqlite3",
     {
       "name": "spdlog",
       "default-features": false,

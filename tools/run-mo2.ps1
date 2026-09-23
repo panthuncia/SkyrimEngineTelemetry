@@ -8,6 +8,12 @@ param(
     [string]$SessionRoot = (Join-Path $PSScriptRoot '..\build\game-runs'),
     [ValidateRange(1, 3600)]
     [int]$ReportIntervalSeconds = 10,
+    [ValidateSet('Off', 'Summary', 'Trace')]
+    [string]$BasicTelemetryMode = 'Summary',
+    [ValidateRange(1, 3600)]
+    [int]$BasicTelemetrySnapshotIntervalSeconds = 10,
+    [ValidateRange(1000, 10000000)]
+    [int]$BasicTelemetryMaximumTraceEvents = 1000000,
     [switch]$SkipBuild,
     [switch]$DisableSampler,
     [switch]$NoWait
@@ -65,16 +71,40 @@ foreach ($required in @($pluginDll, $pluginIni)) {
     }
 }
 
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$session = Join-Path $SessionRoot $stamp
+$basicTelemetryDir = Join-Path $session 'basic-telemetry'
+New-Item -ItemType Directory -Path $session -Force | Out-Null
+
 $ini = Get-Content -Raw -LiteralPath $pluginIni
+if ($ini -notmatch '(?m)^\[BasicTelemetry\]\s*$') {
+    $ini += @"
+
+[BasicTelemetry]
+bCapture=0
+sMode=Summary
+sOutputDirectory=
+iSnapshotIntervalSec=10
+iMaximumTraceEvents=1000000
+bWriteSqlite=1
+bWriteMarkdown=1
+bMeasureThreadCpuTime=0
+"@
+}
 $samplerValue = if ($DisableSampler) { '0' } else { '1' }
 $ini = $ini -replace '(?m)^bEnable\s*=\s*\d+\s*$', "bEnable=$samplerValue"
 $ini = $ini -replace '(?m)^iReportIntervalSec\s*=\s*\d+\s*$', "iReportIntervalSec=$ReportIntervalSeconds"
+$basicTelemetryEnabled = if ($BasicTelemetryMode -eq 'Off') { '0' } else { '1' }
+$ini = $ini -replace '(?m)^bCapture\s*=.*$', "bCapture=$basicTelemetryEnabled"
+$ini = $ini -replace '(?m)^sMode\s*=.*$', "sMode=$BasicTelemetryMode"
+$ini = $ini -replace '(?m)^sOutputDirectory\s*=.*$', "sOutputDirectory=$basicTelemetryDir"
+$ini = $ini -replace '(?m)^iSnapshotIntervalSec\s*=.*$', "iSnapshotIntervalSec=$BasicTelemetrySnapshotIntervalSeconds"
+$ini = $ini -replace '(?m)^iMaximumTraceEvents\s*=.*$', "iMaximumTraceEvents=$BasicTelemetryMaximumTraceEvents"
 Set-Content -LiteralPath $pluginIni -Value $ini -Encoding ASCII
 
-$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$session = Join-Path $SessionRoot $stamp
-New-Item -ItemType Directory -Path $session -Force | Out-Null
 $dll = Get-Item -LiteralPath $pluginDll
+$basicTelemetryTool = Get-ChildItem -LiteralPath (Join-Path $repository 'build') -Filter 'basic-telemetry.exe' -File -Recurse -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1
 [ordered]@{
     started = (Get-Date).ToString('o')
     repository = $repository
@@ -86,6 +116,13 @@ $dll = Get-Item -LiteralPath $pluginDll
     report_directory = $reportDir
     sampler_enabled = -not $DisableSampler
     report_interval_seconds = $ReportIntervalSeconds
+    basic_telemetry = [ordered]@{
+        mode = $BasicTelemetryMode
+        output_directory = $basicTelemetryDir
+        snapshot_interval_seconds = $BasicTelemetrySnapshotIntervalSeconds
+        maximum_trace_events = $BasicTelemetryMaximumTraceEvents
+        query_tool = if ($basicTelemetryTool) { $basicTelemetryTool.FullName } else { $null }
+    }
     plugin = [ordered]@{
         path = $dll.FullName
         length = $dll.Length
@@ -96,6 +133,9 @@ $dll = Get-Item -LiteralPath $pluginDll
 
 Write-Host "Telemetry session: $session"
 Write-Host "Reports: $reportDir"
+if ($BasicTelemetryMode -ne 'Off') {
+    Write-Host "BasicTelemetry artifacts: $basicTelemetryDir"
+}
 Write-Host "Launching MO2 profile '$Profile', executable '$ExecutableTitle'..."
 & $mo2Exe -p $Profile run -e $ExecutableTitle
 if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {

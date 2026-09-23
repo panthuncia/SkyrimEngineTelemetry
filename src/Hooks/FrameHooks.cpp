@@ -32,6 +32,7 @@ namespace EngineTelemetry::FrameHooks
 				}
 
 				{
+					basic_telemetry::Frame frame{ "Skyrim Main" };
 					SET_ZONE("Main::Update", kCategoryFrame);
 					original(a_this, a_unk);
 				}

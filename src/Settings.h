@@ -12,6 +12,16 @@ namespace EngineTelemetry::Settings
 		bool          samplerEnabled{ false };
 		std::uint32_t samplerIntervalUs{ 1'000 };  // One sampling round across all active threads per interval.
 		std::uint32_t reportIntervalSec{ 30 };
+
+		// [BasicTelemetry]
+		bool                   basicTelemetryEnabled{ false };
+		bool                   basicTelemetryTrace{ false };
+		std::filesystem::path  basicTelemetryOutputDirectory;
+		std::uint32_t          basicTelemetrySnapshotIntervalSec{ 10 };
+		std::uint32_t          basicTelemetryMaximumTraceEvents{ 1'000'000 };
+		bool                   basicTelemetryWriteSqlite{ true };
+		bool                   basicTelemetryWriteMarkdown{ true };
+		bool                   basicTelemetryMeasureThreadCpuTime{ false };
 	};
 
 	// Reads SkyrimEngineTelemetry.ini next to the plugin DLL. Missing keys keep defaults.
