@@ -176,9 +176,14 @@ namespace EngineTelemetry
 
 	void ThreadRegistry::OnThreadStarted(std::uintptr_t a_startAddress, std::string_view a_createdBy, std::string a_rttiClass)
 	{
+		OnThreadCreated(GetCurrentThreadId(), a_startAddress, a_createdBy, std::move(a_rttiClass));
+	}
+
+	void ThreadRegistry::OnThreadCreated(DWORD a_tid, std::uintptr_t a_startAddress, std::string_view a_createdBy, std::string a_rttiClass)
+	{
 		const std::scoped_lock lock{ _mutex };
 
-		auto* record = FindOrCreateLocked(GetCurrentThreadId(), ThreadOrigin::Created);
+		auto* record = FindOrCreateLocked(a_tid, ThreadOrigin::Created);
 		if (!record) {
 			return;
 		}

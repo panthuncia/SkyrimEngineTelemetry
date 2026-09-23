@@ -172,19 +172,23 @@ install(
 	COMPONENT Plugin
 )
 
-# Default settings and zones, installed only when absent so deployed copies
-# keep local edits.
-foreach(_set_config_file IN ITEMS SkyrimEngineTelemetry.ini SkyrimEngineTelemetry.zones)
-	install(
-		CODE "
-			set(_set_config_dir \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/SKSE/Plugins\")
-			if(NOT EXISTS \"\${_set_config_dir}/${_set_config_file}\")
-				file(INSTALL DESTINATION \"\${_set_config_dir}\" TYPE FILE FILES \"${CMAKE_CURRENT_SOURCE_DIR}/data/SKSE/Plugins/${_set_config_file}\")
-			endif()
-		"
-		COMPONENT Plugin
-	)
-endforeach()
+# Preserve local sampler settings, but always deploy the repository's zone
+# catalog so newly added instrumentation is exercised by the next build/run.
+install(
+	CODE "
+		set(_set_config_dir \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/SKSE/Plugins\")
+		if(NOT EXISTS \"\${_set_config_dir}/SkyrimEngineTelemetry.ini\")
+			file(INSTALL DESTINATION \"\${_set_config_dir}\" TYPE FILE FILES \"${CMAKE_CURRENT_SOURCE_DIR}/data/SKSE/Plugins/SkyrimEngineTelemetry.ini\")
+		endif()
+	"
+	COMPONENT Plugin
+)
+
+install(
+	FILES "${CMAKE_CURRENT_SOURCE_DIR}/data/SKSE/Plugins/SkyrimEngineTelemetry.zones"
+	DESTINATION "SKSE/Plugins"
+	COMPONENT Plugin
+)
 
 if(SET_SKYRIM_DIR)
 	add_custom_command(

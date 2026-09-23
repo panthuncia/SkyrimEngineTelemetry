@@ -10,3 +10,1101 @@
 #
 # Example (already zoned by the built-in hooks, so left commented out):
 # 100424,107142  Render  Main::RenderWorld
+
+# Long-lived engine/thread scopes. These establish useful roots before adding
+# child zones: the sampler can then attribute each worker's self time by callee.
+36544   Frame     Main::MessageLoop
+13753   Loading   TES::LoadData
+75651   Tasks     BSTaskManagerThread::ThreadProc
+69344   Jobs      BSJobs::JobThread::ThreadProc
+35423   Jobs      JobListManager::ServingThread::ThreadProc
+447405  Jobs      BDKJobThread::ThreadProc
+
+# Startup/loading detail. Names are based on CommonLib types plus Ghidra
+# callers, callees, and decompilation for Skyrim 1.6.1170.
+36547   Startup   Engine::Initialize
+36548   Startup   Engine::InitializeVMAndGameplay
+13760   Loading   TES::LoadPluginFile
+13784   Loading   TES::PostLoadInitialization
+
+# Asynchronous engine behavior.
+90259   Video     BGSMoviePlayer::DecodeFrame
+75716   Tasks     IOManager::RunQueuedTasks
+69809   Resource  BSResource::EntryDB::ProcessTasks
+
+# First report-driven child layer.
+69380   Jobs      BSJobs::JobThread::ProcessJobs
+39039   Jobs      JobListManager::ProcessJobs
+36549   Frame     Main::Run
+32719   Startup   VM::Initialize
+13763   Loading   TES::LoadFormRecords
+18882   Loading   TESObjectCELL::InitializeLoadedForms
+20455   Loading   TESWorldSpace::InitItem
+
+# Second report-driven child layer: high-cost startup, loading, VM, frame, and
+# resource operations resolved with Ghidra and CommonLib type information.
+36554       Startup   Engine::InitializeSceneGraph
+75445,77226 Startup   BSGraphics::Renderer::Initialize
+13690       Loading   TESForm::LoadRecord
+19283       Loading   TESObjectCELL::InitializeReferences
+37791       Loading   Actor::InitItem
+105382      Papyrus   BSScript::LinkerProcessor::Process
+104575      Papyrus   BSScript::CompiledScriptLoader::LoadClass
+105387      Papyrus   BSScript::LinkerProcessor::LinkClass
+32571       Papyrus   SkyrimVM::InitializeRuntime
+82082       Frame     Main::FrameLoop
+36553       Loading   Main::PostLoadGameData
+75814       Resource  BSResource::EntryDB::ProcessEntry
+13894,13979 Loading   TESFile::SeekNextForm
+
+# Third report-driven child layer. These split the remaining large aggregate
+# loading and VM scopes into operations developers can act on directly.
+105624  Startup   BSShaderManager::InitializeResources
+82142   Frame     Main::ProcessQueuedTasks
+104582  Papyrus   BSScript::CompiledScriptLoader::ReadObjects
+104580  Papyrus   BSScript::CompiledScriptLoader::ReadHeader
+104661  Papyrus   BSScript::CompiledScriptLoader::ResolveTypes
+105302  Papyrus   BSScript::LinkerProcessor::ResolveClass
+32615   Papyrus   SkyrimVM::RegisterNativeFunctions
+32624   Papyrus   SkyrimVM::InitializeServices
+75795   Resource  BSResource::EntryDB::ExecuteEntry
+13980   Loading   TESFile::ReadNextForm
+19506   Loading   Actor::Load
+24971   Loading   TESQuest::Load
+18018   Loading   TESObjectSTAT::Load
+24663   Loading   TESNPC::Load
+29547   Loading   DialoguePackage::Load
+17694   Loading   TESObjectACTI::Load
+25597   Loading   TESTopicInfo::Load
+24115   Loading   BGSScene::Load
+30378   Loading   NavMeshInfoMap::Load
+18074   Loading   TESObjectWEAP::Load
+
+# Fourth report-driven layer: steady-state job, resource, frame, background,
+# and render work exposed after the loading/VM scopes were split.
+69378       Jobs      BSJobs::JobThread::ExecuteJobs
+76073       Resource  BSTextureDB::ProcessEntry
+63517       Resource  BShkbHkxDB::ProcessEntry
+104583      Papyrus   BSScript::CompiledScriptLoader::ReadObject
+15435       Resource  BSResource::EntryDB::LoadEntry
+13049       AI        BackgroundProcessThread::ThreadProc
+13108       AI        QueuedCharacter::Process
+13408       Frame     TES::Update
+51612       UI        HUDMenu::ProcessMessage
+69617       Tasks     BSWin32TaskletManager::ProcessTasks
+107132      Render    NiCamera::CalculateAndDrawShadowCasterLights
+99790,106437 Render   NiCamera::RenderScene
+106582      Render    BSShaderAccumulator::FinishPostResolveDepth
+107133      Render    Main::PreparePlayerView
+32174       Render    Water::RenderReflections
+26175       Render    Main::RenderSceneGeometry
+76551       Render    NiCullingProcess::Process
+
+# Fifth report-driven layer: concrete job payloads and render passes. These are
+# the scopes that make steady-state frame behavior readable rather than merely
+# showing time in the generic worker dispatch loop.
+18875       Jobs      UpdateAnimatedRefsJob
+41448       Jobs      UpdateActor
+41453       Jobs      RunOneActorAnimationUpdateJob
+41446       Jobs      ProcessActorAnimSG
+36995       Jobs      UpdateCellNode
+19204       Jobs      UpdateAnimationJob
+18870       Jobs      UpdateExteriorWorldJob
+18871       Jobs      UpdateManagedNodesJob
+39102       Jobs      TerrainManager::PartialUpdateJob
+106927      Jobs      BSAccumProcess::RegisterSceneListJob
+107135      Jobs      ListAccumulationJob
+107134      Jobs      FirstListAccumulationJob
+76043       Resource  BSTextureDB::ProcessQueue
+104585      Papyrus   BSScript::CompiledScriptLoader::ReadObjectData
+107137      Render    CalculateActiveShadowCasterLights
+108489      Render    BSShadowDirectionalLight::Render
+31373,32160 Render    TESWaterReflections::Update
+106583      Render    BSShaderAccumulator::RenderBatches
+106592      Render    BSShaderAccumulator::RenderPostResolve
+106584      Render    BSShaderAccumulator::FinishFrame
+25641,26183 Render    Precipitation::SetupMask
+51668       UI        Compass::Update
+69948       Tasks     BSResource::ArchiveRegistrationTaskData::Run
+
+# Sixth report-driven layer: children which accounted for nearly all remaining
+# self-time in the fifth-layer scopes. Names with "Impl" describe their observed
+# parent operation while retaining a stable, developer-readable boundary.
+18894       Jobs      TESObjectCELL::UpdateAnimatedReferences
+41303       Jobs      ActorUpdateJobs::ExecutePayload
+37350       Jobs      PlayerCharacter::JobUpdate
+41369       Jobs      UpdateActor::Impl
+20123       Jobs      TESObjectREFR::UpdateAnimationGraph
+41381       Jobs      ProcessActorAnimSG::Impl
+106924      Jobs      ListAccumulationJob::Accumulate
+77851       Physics   bhkWorld::UpdateExterior
+70306       Jobs      BGSDecalNode::UpdateTransformAndBounds
+20119       Jobs      ArrowProjectile::UpdateAnimation
+19384       Jobs      BSFadeNode::UpdateAnimation
+18874       Jobs      PrepareUpdateAnimatedRefsJob
+36643       Jobs      DrawWorld_BuildSceneLists
+25104       Jobs      JobPayload::UpdateSceneObjects
+26999       Jobs      JobPayload::UpdateWorld
+76014       Resource  BSTextureDB::ProcessQueuedTexture
+63475       Resource  BShkbHkxDB::ProcessEntryImpl
+15434       Resource  BSResource::EntryDB::LoadEntryImpl
+104587      Papyrus   BSScript::CompiledScriptLoader::ReadObjectPayload
+108488      Render    BSShadowDirectionalLight::Accumulate
+106609      Render    BSShaderAccumulator::SubmitPass
+106586      Render    BSShaderAccumulator::ResolveBatches
+106587      Render    BSShaderAccumulator::FinalizeBatches
+107630      Render    BSShaderAccumulator::DrawPass
+107146      Render    BSShaderAccumulator::PostBatchCleanup
+77396       Startup   BSGraphics::Renderer::InitializeDeviceResources
+36581       Frame     Main::UpdateWorldState
+27093       Frame     Main::UpdateSceneState
+
+# Seventh report-driven layer: deeper animation, decal, culling, resource,
+# Papyrus, and per-frame operations exposed by the 121-zone capture.
+107642      Render    BSBatchRenderer::RenderPass
+41302       Jobs      ActorUpdateJobs::PreparePayload
+70302       Jobs      BGSDecalNode::UpdateSelectedDownwardPass
+37356       Jobs      PlayerCharacter::UpdateAnimation
+76013       Resource  BSTextureDB::PrepareQueuedTexture
+108326      Startup   BSShaderManager::CreateResource
+36895       Jobs      TESObjectCELL::UpdateReference3D
+37371       Jobs      Character::UpdateAnimation
+32155,32899 Jobs      IAnimationGraphManagerHolder::UpdateAnimationGraphManager
+37347       Jobs      Character::UpdateAnimationGraph
+19387       Jobs      NiAVObject::UpdateWorldData
+76561       Render    BSCullingProcess::AccumulateVisible
+61410       Physics   ahkpWorld::StepSimulation
+76558       Render    BSCullingProcess::ProcessJob
+75773       Resource  BSResource::EntryDB::PrepareEntry
+63524       Resource  BShkbHkxDB::LoadEntryData
+105306      Papyrus   BSScript::LinkerProcessor::LinkObject
+106926      Jobs      BSAccumProcess::RegisterSceneList
+41371       Jobs      ActorUpdateJobs::FinalizePayload
+107564      Render    BSCubeMapCamera::RenderFace
+40447       Frame     PlayerCharacter::Update
+106585      Render    BSShaderAccumulator::BeginBatch
+91414       Tasks     PathingTaskData::Process
+24126       Jobs      BGSScene::UpdateJob
+36555       Frame     Main::UpdateInputAndMenus
+15819       Jobs      ReferenceUpdateJob::Run
+69870       Tasks     BSTaskletData::Run
+39074       Jobs      Job_VM_Update
+26988       Jobs      BSFaceGenNiNode::Update
+31017,31802 Jobs      BGSTerrainManager::Update
+51671       UI        EnemyHealth::Update
+18891       Jobs      TESObjectCELL::UpdateManagedReference
+13019       AI        QueuedReference::Process
+32614       Papyrus   SkyrimVM::BindNativeFunctions
+25792       Tasks     CellMopp::HeightFieldWeldingTasklet::Process
+27095       Frame     Main::UpdateWorldScene
+32669       Papyrus   SkyrimVM::InitializeObjectStorage
+70539       Jobs      BGSDecalNode::UpdateWorldData
+98440       Jobs      AnimationJob::Run
+36655       Jobs      Main::QueueSceneUpdateJobs
+19366       Jobs      BSFadeNode::UpdateGeometry
+
+# Eighth report-driven layer: remaining high-signal children from the 162-zone
+# capture. External timing/overlay helpers are deliberately not hooked.
+76553       Render    BSCullingProcess::ProcessObject
+76018       Resource  BSTextureDB::CreateQueuedTexture
+77353       Startup   BSGraphics::CreateRenderTargets
+63358       Jobs      BSAnimationGraphManager::Update
+106567      Jobs      BSShaderAccumulator::BuildJob
+75949       Resource  BSResource::EntryDB::ResolveEntry
+105289      Papyrus   BSScript::LinkerProcessor::ResolveObject
+70922       Jobs      BSDynamicTriShape::UpdateSelectedDownwardPass
+39108       Jobs      TerrainUpdateJob::Run
+63523       Resource  BShkbHkxDB::CreateEntry
+91877       AI        MovementControllerAI::Update
+37507       Jobs      Actor::Move
+61792       Physics   hkpSimulation::Step
+68900,70251 Jobs      NiAVObject::Update
+37976       Jobs      Character::UpdateMovement
+82084       Frame     Main::ProcessFrameEvents
+77348       Startup   BSGraphics::CreateRendererResources
+60310       Tasks     hkpTriSampledHeightFieldCollection::Process
+107673      Render    BSBatchRenderer::SubmitDraws
+78910       Physics   bhkBlendCollisionObject::UpdateWorldData
+100213,106921 Render  BSCullingProcess::Process
+31828       Jobs      BGSTerrainManager::UpdateJob
+31811       Frame     Main::UpdateCameraAndWorld
+90396       Tasks     Pathing::ProcessTask
+69852       Tasks     PrepareStreamForBSAFile
+53926       Papyrus   SkyrimVM::ProcessRegisteredUpdates
+72934       Jobs      NiTransformController::Update
+70303       Jobs      BGSDecalNode::UpdateUpwardPass
+105486      Jobs      BSFadeNode::UpdateAnimationControllers
+
+# Ninth report-driven layer: resource construction, Havok simulation stages,
+# animation graph internals, movement/pathing, UI display, and VM storage.
+70716       Resource  BSTextureDB::ConstructTextureResource
+63447       Resource  BShkbHkxDB::DeserializeAnimationData
+104545      Papyrus   BSScript::CompiledScriptLoader::ReadStringTable
+14034       Loading   TESForm::InitializeLoadedData
+63589       Jobs      BShkbAnimationGraph::Update
+39637       Jobs      AnimationGraphJob::Run
+70924       Jobs      BSDynamicTriShape::UpdateGeometry
+19507       Loading   ArrowProjectile::InitItemImpl
+78275       Physics   bhkCharacterController::Update
+70301       Jobs      BGSDecalNode::UpdateDownwardPass
+70921       Jobs      BSDynamicTriShape::UpdateDownwardPass
+70333       Resource  NiStream::Load
+71083       Render    BSCullingProcess::TestObject
+61794       Physics   hkpSimulation::Integrate
+63587       Jobs      BShkbAnimationGraph::Evaluate
+92401       AI        MovementPlannerArbiter::Update
+106576      Jobs      BSShaderAccumulator::PrepareGeometryJob
+106570      Jobs      BSShaderAccumulator::ProcessGeometryJob
+69629       Tasks     BSWin32TaskletManager::RunTasklet
+83789       UI        GFxMovieRoot::Display
+60311       Tasks     HeightFieldCollectionTask::Run
+104584      Papyrus   BSScript::CompiledScriptLoader::ReadObjectHeader
+92340       AI        MovementPlanner::Update
+78178       Physics   bhkCollisionObject::Update
+31483       Tasks     PathingRequest::BuildPath
+14654       Loading   TESFile::InstantiateForm
+90873       AI        MovementPathManagerArbiter::Update
+53811       Papyrus   SkyrimScript::Store::LoadObject
+92804       AI        MovementController::UpdatePath
+61793       Physics   hkpSimulation::Collide
+13034       AI        QueuedReference::Update
+80429       Physics   hkpContinuousSimulation::AdvanceTime
+67315,68617 Jobs      BSInputDeviceManager::PollInputDevices
+37001       Jobs      TESObjectCELL::UpdateReferences
+
+# Tenth report-driven layer: stream loading, behavior graphs, shader-property
+# updates, path building, movement arbitration, and continuous-physics stages.
+69655       Papyrus   BSResource::ArchiveStream::Read
+63442       Resource  BShkbHkxDB::DBData::Load
+14032       Loading   TESFile::LoadFormData
+70259       Render    BSCubeMapCamera::UpdateDownwardPass
+70381       Resource  NiStream::LoadStream
+70676       Render    BSBloodSplatterShaderProperty::Update
+13279       Loading   TESForm::InitializeFormData
+104189      Papyrus   SkyrimScript::ObjectBindPolicy::BindObject
+80441       Physics   hkpContinuousSimulation::ProcessCollisions
+63568       Jobs      BShkbAnimationGraph::UpdateBehavior
+58329       Jobs      hkbBehaviorGraph::Update
+19671       Loading   TESObjectREFR::Load3D
+39222       Jobs      BehaviorGraphUpdateJob::Run
+84143       UI        GFxSprite::Display
+90875       AI        MovementPathManagerArbiter::ProcessPath
+91713       Tasks     BSPathBuilder::Build
+70925       Jobs      BSDynamicTriShape::UpdateWorldBound
+69752       Tasks     BSResourceTask::Run
+104664      Papyrus   BSScript::CompiledScriptLoader::ReadValue
+32919       AI        ActorProcessManager::Update
+106517      Render    BSLightingShaderProperty::GetShadowRenderPasses
+40449       Frame     PlayerCharacter::UpdateControls
+15469       Loading   BSResource::EntryDB::CreateEntry
+68164       Loading   BSResource::LoadStream
+63581       Jobs      BShkbAnimationGraph::UpdatePose
+78292       Physics   bhkCharacterController::Integrate
+19727       AI        Explosion::Load3D
+61809       Physics   hkpContinuousSimulation::ProcessToiEvents
+61774       Physics   ahkpWorld::StepActions
+
+# Eleventh report-driven layer: narrower asset, VM, behavior, skinning,
+# particle, character-physics, input, and world-streaming operations.
+65120       Resource  hkLoader::Load
+56875       Loading   TESModelDB::LoadModel
+69785       Papyrus   BSResource::ArchiveStream::ReadData
+39111       Jobs      TerrainUpdateJob::UpdateCell
+20041       Loading   TESObjectREFR::Initialize3D
+69646       Papyrus   BSResource::ArchiveStream::ReadHeader
+108415      Render    BSEffectShaderPropertyFloatController::Update
+80438       Physics   hkpContinuousSimulation::ProcessAgents
+74498       Render    BSStripParticleSystem::UpdateSystem
+58343       Jobs      hkbBehaviorGraph::Evaluate
+83622       UI        GFxMovieRoot::AdvanceDisplayList
+71212       Jobs      NiSkinInstance::UpdateSkinning
+91720       Tasks     BSPathBuilder::Process
+104179      Papyrus   SkyrimScript::ObjectBindPolicy::ResolveObject
+62314       Physics   hkpWorld::ExecuteActions
+70746       Jobs      ParticleUpdateJob::Run
+79206       Physics   bhkCharRigidBodyController::Rotate
+39042       Jobs      Job_UI
+36639       Startup   Engine::InitializeGameSystems
+70379       Resource  BSStream::LoadHeader
+78100       Physics   bhkRigidBody::Update
+104767      Papyrus   BSScript::Internal::VirtualMachine::Dispatch
+74527       Render    NiPSysEmitterCtlr::Update
+70650       Resource  BSInstanceTriShape::LoadBinary
+79201       Physics   bhkCharRigidBodyController::UpdateState
+37348       Jobs      Actor::Update
+17667       AI        AlchemyItem::Clone3D
+25517       Loading   TESTopic::Load
+11596       Loading   TESFile::LoadFormPayload
+68755       Input     BSPCGamepadDeviceHandler::Poll
+15372       Tasks     GrassManager::ProcessTask
+31835       Jobs      BGSTerrainManager::FinalizeUpdate
+
+# Twelfth report-driven layer: Havok buffered I/O, procedure trees, animation
+# events, shadows, path building, UI invocation, and cell-animation jobs.
+64843       Resource  hkBufferedStreamReader::Read
+53975       Loading   TESInitScriptEventSink::Handle
+56949       Loading   TESModelDB::FinalizeModel
+64652       Physics   HavokWorld::DeserializeShape
+58376       Jobs      hkbBehaviorGraph::UpdateNodes
+29254       AI        BGSProcedureTreeSequence::Execute
+72689       Render    NiFloatInterpolator::Update
+69784       Papyrus   BSResource::ArchiveStream::Seek
+32893       AI        IAnimationGraphManagerHolder::SendAnimationEvent
+29258       AI        BGSProcedureTreeStacked::Execute
+77259       Resource  BSGraphics::LoadTextureData
+106349      Render    ShadowSceneNode::UpdateLights
+88201       UI        MenuManager::ProcessUIEvent
+69685       Tasks     BSResourceTask::Execute
+80233,82256 UI        GFxValue::ObjectInterface::Invoke
+91721       Tasks     BSPathBuilder::FinalizePath
+42246       AI        IMovementTweenerAgent::Update
+18216       Loading   TESObjectCELL::LoadReferences
+69860       Startup   BSResource::InitializeArchives
+90711       AI        MovementAgent::Update
+53555       Papyrus   SkyrimScript::ObjectBindPolicy::AttachObject
+69036       Resource  BSResourceNiBinaryStream::Read
+39067       Jobs      Job_Cell_Animations
+13996       Loading   TESFile::CreateForm
+67457,68762 Input     BSPCGamepadDeviceHandler::InitializeDelegate
+39943       Jobs      AIUpdateJob::Run
+51675       UI        EnemyHealth::UpdateTarget
+
+# Thirteenth report-driven layer: specialized VM binding, buffered streaming,
+# path finalization, visibility, AI procedures, and character-physics work.
+# Generic locks, fixed-string helpers, and pointer lookup are excluded.
+64871       Resource  hkBufferedStreamReader::FillBuffer
+53574       Papyrus   SkyrimScript::ObjectBindPolicy::FindBoundObject
+14666       Loading   ActorValueInfo::SetFormID
+104197      Papyrus   SkyrimScript::ObjectBindPolicy::CreateBinding
+65022       Physics   hkLoader::ResolveReferences
+83275       UI        GFxMovieRoot::Advance
+73075       Render    NiControllerManager::Update
+63585       AI        BShkbAnimationGraph::ProcessEvents
+105281      Papyrus   BSScript::LinkerProcessor::BindObject
+91723       Tasks     BSPathBuilder::CommitPath
+452543      Jobs      AnimationGraphTask::Run
+88200       UI        MenuManager::UpdateMovie
+71027       Resource  NiStream::ResolveLinkIDs
+69871       Startup   BSResource::RegisterArchives
+56948       Loading   TESModelDB::CreateModel
+104324      Papyrus   BSScript::Internal::VirtualMachine::BindObject
+105283      Papyrus   BSScript::LinkerProcessor::FinalizeObject
+28994       AI        BGSProcedureSandbox::Update
+82083       Jobs      Main::QueueFrameJobs
+105485      Render    BSFadeNode::OnVisible
+105384      Papyrus   BSScript::LinkerProcessor::FinalizeClass
+24160       Jobs      BGSScene::UpdateActors
+31838       Jobs      BGSTerrainManager::CommitUpdate
+28920       AI        BGSProcedurePatrol::Update
+79185       Physics   hkpCharacterRigidBodyListener::ContactPointCallback
+80138       Physics   bhkQuadOrientationController::Update
+104193      Papyrus   BSMemStorage::Read
+75766       Resource  BSResource::IEntryDB::PostFlushNotify::Notify
+
+# Fourteenth report-driven layer: archive/loose-file reads, VM object binding,
+# FaceGen visibility, IK/clip generation, sandbox execution, and geometry culling.
+69666       Resource  BSResource::CompressedArchiveStream::Read
+64867       Resource  hkBufferedStreamReader::ReadBlock
+70032       Resource  BSResource::LooseFileStream::Read
+13743       Loading   TESFile::LoadRecords
+83102       UI        GASAsFunctionObject::Invoke
+104826      Papyrus   BSScript::IVMObjectBindInterface::BindObject
+65019       Physics   hkLoader::FinishLoadedObject
+70307       Render    BSFaceGenNiNode::OnVisible
+53510       Papyrus   SkyrimScript::HandlePolicy::ResolveHandle
+91724       Tasks     BSPathBuilder::PublishPath
+104820      Papyrus   BSScript::IVMObjectBindInterface::FindObject
+15507       Loading   BSResource::EntryDB::ResolveFormResource
+104819      Papyrus   BSScript::IVMObjectBindInterface::CreateObject
+37225       Jobs      PlayerCharacter::UpdateAnimationState
+58423       Jobs      hkbFootIkDriver::Update
+59257       Jobs      hkbClipGenerator::Generate
+104859      Papyrus   BSScript::Internal::VirtualMachine::CreateObject
+29000       AI        BGSProcedureSandboxExecState::Update
+106337      Render    BSGeometryListCullingProcess::Process
+80567       Physics   hkpCharacterRigidBodyListener::CharacterCallback
+29655       Loading   BGSLoadGameBuffer::LoadFormData
+32703       AI        ActorProcessManager::UpdateHighProcess
+64742       Physics   HavokTypeRegistry::FinishLoadedObject
+
+# Fifteenth report-driven layer: first deterministic in-world capture. These
+# scopes cover camera, ragdoll, actor animation, NPC/reference creation,
+# lighting passes, pathing, foot-placement IK, and active-cell frame work.
+110000      Resource  BSResource::CompressedArchiveStream::Decompress
+57658       Resource  hkLoader::LoadPackfileData
+36641       Frame     Main::InitializeWorld
+70047       Resource  BSResource::CompressedArchiveStream::ReadChunk
+40438       Frame     PlayerCharacter::UpdateWorld
+83250       UI        GFxMovieRoot::AdvanceActions
+104821      Papyrus   BSScript::IVMObjectBindInterface::ResolveObject
+65040       Physics   hkLoader::ResolveTypeInfo
+67123       Physics   hkpWorld::AddEntity
+90438       Tasks     Pathing::Update
+89245       UI        HUDMenu::UpdateMovie
+29001       AI        BGSProcedureSandboxExecState::Execute
+24305       Jobs      BGSScene::UpdateActorJob
+65030       Physics   hkLoader::ApplyFixups
+19411       Loading   TESObjectCELL::AttachReference3D
+40750       Frame     PlayerCharacter::UpdateMovement
+69892       Startup   BSResource::FinalizeArchiveRegistration
+49852,50784 Frame     PlayerCamera::Update
+63373       AI        BSAnimationGraphManager::ProcessEventQueue
+106335      Render    BSGeometryListCullingProcess::Accumulate
+41447       Jobs      UpdateRagdollPostPhysics
+69972       Tasks     BSResourceTask::Finalize
+28922       AI        BGSProcedurePatrol::Execute
+53512       Papyrus   SkyrimScript::HandlePolicy::CreateHandle
+106516      Render    BSLightingShaderProperty::GetRenderPasses
+19142,19544 Loading   TESObjectREFR::CreateReference
+104412      Papyrus   BSScript::Internal::VirtualMachine::QueueEvent
+104183      Papyrus   SkyrimScript::ObjectBindPolicy::CreateObject
+59311       Jobs      hkbBehaviorGraph::GeneratePose
+104778      Papyrus   BSScript::Internal::VirtualMachine::Update
+24719       Loading   TESNPC::InitItemImpl
+91738       Tasks     BSPathBuilder::BuildNavmeshPath
+38054       Jobs      Actor::ModifyAnimationUpdateData
+56977       Jobs      hkaFootPlacementIkSolver::Solve
+13291       Frame     TES::UpdateActiveCell
+75595       Render    NiPSysModifierBoolCtlr::Update
+91717       Tasks     BSPathBuilder::QueuePath
+
+# Sixteenth report-driven layer: deeper functions observed only after entering
+# an active cell, including animated-cell jobs, local-map camera, inventory,
+# reference animation graphs, patrol AI, aliases, and dynamic-shape visibility.
+57660       Resource  hkLoader::ParsePackfileObjects
+110036      Resource  BSResource::DecompressArchiveBlock
+36604       Frame     TES::UpdateTimeAndWeather
+109999      Resource  BSResource::InitializeDecompressor
+13744       Loading   TESFile::LoadFormGroup
+110040      Resource  BSResource::FinalizeDecompressedBlock
+13057       Loading   TESForm::RegisterLoadedForm
+13316       Frame     TES::UpdateWorld
+32491       Frame     SkyrimVM::UpdateGameTime
+67122       Physics   hkpWorld::AddEntityBatch
+69934       Resource  BSResource::LocationTree::Traverse
+65047       Physics   hkLoader::FinishLoadedObjects
+64958       Physics   hkTypeInfoRegistry::FinishLoadedObject
+69175       Loading   BSFixedStringTable::Initialize
+90439       Tasks     Pathing::ProcessRequests
+104416      Papyrus   BSScript::Internal::VirtualMachine::DispatchEvent
+33025       Frame     LocalMapCamera::Update
+39100       Jobs      Job_AnimatedCellObjectUpdate
+89244       UI        HUDMenu::Advance
+14783       Loading   TESModel::LoadModel
+63858       AI        hkbCharacter::Update
+20111       Jobs      TESObjectREFR::GetAnimationGraphManagerImpl
+104266      Papyrus   BSScript::Internal::VirtualMachine::UpdateStacks
+39114       Jobs      AnimatedCellObjectUpdateJob::Run
+24013       Loading   BGSRefAlias::Load
+28926       AI        BGSProcedurePatrol::UpdatePath
+53505       Papyrus   SkyrimScript::HandlePolicy::GetHandleForObject
+80436       Physics   hkpContinuousSimulation::Advance
+63844       AI        hkbCharacter::GeneratePose
+15800,16038 Loading   TESObjectREFR::InitInventoryIfRequired
+69753       Tasks     BSResourceTask::Complete
+104232      Papyrus   BSScript::Internal::VirtualMachine::ProcessMessages
+11595       Loading   TESForm::LoadGameData
+70926       Render    BSDynamicTriShape::OnVisible
+
+# Seventeenth report-driven layer: quest/frame ticking, first-person camera,
+# path smoothing, collision queries, skin partitions, SSAO, worldspace loading,
+# behavior modifiers, and movement-controller work from the active-cell run.
+75738       Loading   QueuedFile::Process
+441548      Loading   TESFile::LoadQueuedForm
+57820       Resource  hkLoader::ResolveClassNames
+25048       Frame     TESQuest::Update
+75708       Frame     IOManager::Update
+60681       Physics   hkMoppBvTreeShapeBase::QueryAabb
+39213       Jobs      ActiveCellUpdateJob::Run
+92993       Tasks     BSPathSmootherPOVSearch::SmoothPath
+67105       Physics   hkpWorld::QueryBroadPhase
+84959       UI        HUDMenu::ProcessMovieEvent
+59566       Jobs      hkbModifierGenerator::Generate
+71126       Resource  NiSkinPartition::LoadBinary
+18242       Loading   TESObjectCELL::LoadObjectList
+83294       UI        GFxMovieRoot::ProcessActions
+63948       AI        hkbCharacter::UpdateBehavior
+29895       Jobs      ActorUpdateTask::Run
+50724       Frame     FirstPersonState::Update
+65049       Physics   hkLoader::FinalizeTypeInfo
+53514       Papyrus   SkyrimScript::HandlePolicy::ReleaseHandle
+70188       AI        NiObject::Clone
+15381       Tasks     GrassManager::UpdateCell
+69933       Resource  BSResource::GlobalPaths::Traverse
+100520,107245 Render  BSImagespaceShader::RenderSSAO
+80569       Physics   hkpCharacterRigidBodyListener::ProcessContact
+27426       Loading   TESObjectREFR::LoadInventory
+65232       AI        hkbProjectData::ResolveBehavior
+91878       AI        MovementControllerAI::UpdatePathing
+70304       Jobs      BGSDecalNode::UpdateWorldBound
+70973       Jobs      BSDynamicTriShape::UpdateSkin
+20453       Loading   TESWorldSpace::Load
+83125       UI        GFxMovieRoot::ProcessInput
+108492      Render    BSShadowDirectionalLight::UpdateShadowMap
+
+# Eighteenth report-driven layer: load-time gaps exposed before the deterministic
+# cell stabilized, including form construction, leveled inventory, equipment,
+# movement-controller creation, VM object binding, and script-store operations.
+53557       Papyrus   SkyrimScript::ObjectBindPolicy::Update
+13932       Loading   TESFile::LoadFormRecordData
+75709       Frame     IOManager::ProcessCompletedRequests
+75706       Loading   IOManager::LoadQueuedFile
+53566       Papyrus   SkyrimScript::ObjectBindPolicy::BindHandle
+105293      Papyrus   BSScript::LinkerProcessor::CreateObject
+69932       Resource  BSResource::GlobalLocations::Resolve
+14602       Loading   TESForm::InitializeData
+104337      Papyrus   BSScript::Internal::VirtualMachine::CreateStack
+51730       Frame     MenuControls::ProcessInput
+77306       Video     BGSMoviePlayer::SubmitDecodedFrame
+53571       Papyrus   SkyrimScript::ObjectBindPolicy::ResolveHandle
+14786       Loading   TESModel::SetModel
+14603       Loading   TESForm::FinishLoad
+19501       Loading   TESObjectREFR::Constructor
+14374       Loading   TESFormFactory::CreateForm
+14780       Loading   TESModelPSA::SetModel
+15889,16129 Loading  InventoryChanges::InitLeveledItems
+25302       Loading   TESRace::Load
+13765       Loading   TESFile::ResolveFormIDs
+14599       Loading   TESForm::InitializeComponents
+53588       Papyrus   SkyrimScript::ObjectBindPolicy::QueueBind
+97463,104247 Papyrus Object::GetHandle
+68218       Tasks     BSSimpleListTask::Run
+18214       Loading   TESObjectCELL::CreateReference
+104519      Papyrus   BSScript::CompiledScriptLoader::ReadFunction
+36545       Startup   Engine::InitializeVMAndGameplay
+104338      Papyrus   BSScript::Internal::VirtualMachine::ResumeStack
+53805       Papyrus   SkyrimScript::Store::LoadScriptObject
+37793       Loading   Actor::CreateMovementController
+17787       Loading   TESObjectARMO::Load
+18075       Loading   TESObjectWEAP::InitItemImpl
+13907       Loading   TESFile::ReadRecordData
+105308      Papyrus   BSScript::LinkerProcessor::LinkObjectProperties
+17791       Loading   TESObjectARMO::InitItemImpl
+14572       Loading   TESForm::ResolveReferences
+91354       Loading   ActorMovementController::Initialize
+104533      Papyrus   BSScript::CompiledScriptLoader::ReadProperty
+69774       Papyrus   BSResource::ArchiveStream::ReadBuffer
+41313       Frame     PlayerCharacter::UpdateActorState
+17756       Loading   TESObjectARMA::Load
+105368      Papyrus   BSScript::LinkerProcessor::FinalizeProperties
+53568       Papyrus   SkyrimScript::ObjectBindPolicy::UnbindHandle
+104662      Papyrus   BSScript::CompiledScriptLoader::ReadType
+98654,105309 Papyrus Object::Destroy
+53807       Papyrus   SkyrimScript::Store::ReleaseObject
+
+# Nineteenth report-driven layer: long, stable in-world capture with Start On
+# Save isolated. Covers conditions, quests, camera state, AI scheduling, actor
+# positioning, sky, FaceGen traversal, render passes, and character physics.
+31780       Engine    GameState::Update
+29090,29924 Jobs      TESConditionItem::IsTrue
+108600      Render    BSParabolicCullingProcess::ProcessObject
+59278       Jobs      hkbClipGenerator::Update
+108604      Render    BSParabolicCullingProcess::AppendNonAccum
+65237       AI        hkbProjectData::UpdateCharacter
+75633       Loading   BSTaskManager::ProcessTask
+53573       Papyrus   SkyrimScript::ObjectBindPolicy::ReleaseObject
+59309       Jobs      hkbBehaviorGraph::GenerateOutput
+104827      Papyrus   BSScript::IVMObjectBindInterface::UnbindObject
+107636      Render    BSBatchRenderer::RegisterPass
+25063       Frame     TESQuest::UpdateObjectives
+37363       Jobs      Character::UpdateActorState
+49899,50832 Frame     PlayerCamera::UpdateState
+11816       Jobs      ActorProcessManager::UpdateActors
+105176      Jobs      BSScript::VMUpdateJob::Run
+107626      Render    BSBatchRenderer::BuildPass
+26829       Jobs      FaceGenUpdateJob::Run
+26990       Jobs      BSFaceGenNiNode::UpdateGeometry
+39089       AI        Job_NonRenderSafeAI
+62404       Physics   hkpWorld::ProcessCollisionInput
+107784      Render    BSRenderPass::Submit
+60039       Jobs      hkbCharacter::UpdatePose
+106324      Render    BSCullingProcess::AppendVisible
+107148      Render    BSShaderAccumulator::ResolveRenderPass
+37183       Jobs      Actor::HasKeywordHelper
+104857      Papyrus   BSScript::Internal::VirtualMachine::DispatchMethod
+107640      Render    BSBatchRenderer::FinalizePass
+26985       Jobs      BSFaceGenNiNode::UpdateDownwardPass
+26229       Frame     Sky::Update
+69989       Resource  BSResource::LooseFileLocation::Resolve
+79149       Physics   bhkCharProxyController::Update
+38019       Jobs      Character::UpdateMovementState
+37995       Jobs      Actor::UpdateActor3DPosition
+58522       Jobs      hkbGenerator::Generate
+104858      Papyrus   BSScript::Internal::VirtualMachine::DispatchStaticCall
+37277       Jobs      Character::UpdateCombatState
+39207       Jobs      AIUpdateJob::ProcessActors
+
+# Twentieth report-driven layer: targeted gameplay children after the long-run
+# pass, including crosshair selection, native VM queries, quest events,
+# compressed animation, character proxies, foot IK, UI text, and culling lists.
+53611       Papyrus   SkyrimScript::ObjectBindPolicy::ResolveBoundObject
+70050       Resource  BSResource::CompressedArchiveStream::ReadDirectory
+104845      Papyrus   BSScript::Internal::VirtualMachine::CallFunction
+25116       Frame     TESQuest::UpdateAliases
+25105       Frame     TESQuest::UpdateStages
+57831       Resource  hkOArchive::WriteObject
+40620       Frame     PlayerCharacter::PickCrosshairReference
+21644       Papyrus   GameFunc::native::HasKeyword
+107661      Render    BSBatchRenderer::DrawPass
+62405       Physics   hkpWorld::ProcessCollisionOutput
+14350       Loading   TESFormFactory::InitializeForm
+76557       Render    BSCullingProcess::AppendNonAccum
+104853      Papyrus   BSScript::Internal::VirtualMachine::RunStack
+51610       Frame     PlayerControls::Update
+75705       Frame     IOManager::UpdateRequests
+21446       Papyrus   GameFunc::native::GetVMScriptVariable
+24720       Loading   TESNPC::CopyFromTemplateForms
+65539       Jobs      hkaSplineCompressedAnimation::SampleTracks
+62633       Physics   ahkpCharacterProxy::Update
+108605      Render    BSParabolicCullingProcess::Finalize
+24972       Loading   TESQuest::InitItemImpl
+105290      Papyrus   BSScript::LinkerProcessor::ResolveObjectProperties
+64787       Physics   HavokJobQueue::ProcessJob
+69754       Tasks     BSResourceTask::SignalComplete
+67087       Physics   hkpWorld::RemoveEntity
+16128       Loading   InventoryChanges::Initialize
+85611       UI        GFxEditTextCharacter::Display
+104868      Papyrus   BSScript::Internal::VirtualMachine::DispatchEvent
+56978       Jobs      hkaFootPlacementIkSolver::Update
+63867       AI        hkbCharacter::ProcessBehaviorOutput
+104578      Papyrus   BSScript::CompiledScriptLoader::LoadObject
+65122       Resource  hkLoader::CleanupLoadedData
+76772       Render    BSGeometryListCullingProcess::AppendNonAccum
+39060       Jobs      Job_QuestForEvents
+25518       Loading   TESTopic::InitItemImpl
+67129       Physics   hkpWorld::UpdateBroadPhase
+104937      Papyrus   BSScript::Internal::VirtualMachine::ProcessLatentCall
+105385      Papyrus   BSScript::LinkerProcessor::FinalizeLink
+63846       AI        hkbCharacter::UpdateWorldFromModel
+21651       Papyrus   GameFunc::native::GetIsEditorLocation
+57829       Resource  hkOArchive::WriteData
+104297      Papyrus   BSScript::Internal::VirtualMachine::QueueStack
+104875      Papyrus   BSScript::Internal::VirtualMachine::ResumeLatentCall
+
+# Twenty-first report-driven layer: quest state, Scaleform/HUD advancement,
+# look-at and special-idle AI, animation variable binding, broadphase physics,
+# VM tasklets, leveled lists, aliases, and character-proxy/contact processing.
+53619       Papyrus   SkyrimScript::ObjectBindPolicy::ProcessPendingBindings
+25115       Frame     TESQuest::UpdateCurrentStage
+104308      Papyrus   BSScript::Internal::VirtualMachine::ProcessStack
+25160       Frame     TESQuest::UpdateEventConditions
+65549       Jobs      hkaSplineCompressedAnimation::DecompressTracks
+69949       Resource  BSResource::RegisterPrefix::Traverser::Visit
+19645       Papyrus   Explosion::HasKeywordHelper
+62260       Physics   hkpWorld::ProcessConstraintInput
+104426      Papyrus   BSScript::Internal::VirtualMachine::RunFunction
+51613       UI        HUDMenu::AdvanceMovie
+63950       AI        hkbCharacter::ApplyBehaviorOutput
+63278       Jobs      BSLookAtModifier::Update
+65029       Physics   hkLoader::RegisterTypeInfo
+64680       Physics   hkp3AxisSweep::UpdateAabbs
+80302,82325 UI       BSScaleformManager::LoadMovie
+62646       Physics   ahkpCharacterProxy::Integrate
+105179      Papyrus   BSScript::Internal::CodeTasklet::Run
+64803       Physics   HavokJobQueue::ExecuteJob
+67083       Physics   hkpWorld::UpdateEntity
+104847      Papyrus   BSScript::Internal::VirtualMachine::InvokeFunction
+53519       Papyrus   SkyrimScript::HandlePolicy::ResolveObject
+61698       Physics   hkpSimulation::ProcessConstraints
+38308,39281 AI       AIProcess::RandomlyPlaySpecialIdles
+14580       Loading   TESForm::LoadComponents
+14798       Loading   TESModel::InitializeModelData
+104791      Papyrus   BSScript::Internal::VirtualMachine::ProcessCallResult
+59467       Jobs      hkbVariableBindingSet::ApplyBindings
+21487       Papyrus   GameFunc::native::GetIsID
+14033       Loading   TESFile::FinalizeFormLoad
+105329      Papyrus   BSScript::LinkerProcessor::ResolveFunction
+14593       Loading   TESForm::Constructor
+40246       Tasks     BSTask::Run
+108535      Resource  BSGraphics::LoadShaderResource
+14579,14751 Loading  TESLeveledList::CalculateCurrentFormList
+91219       Loading   ActorMovementController::LoadData
+104867      Papyrus   BSScript::Internal::VirtualMachine::DispatchLatentCall
+62262       Physics   hkpWorld::ProcessContactConstraints
+62146       Physics   hkpSimpleConstraintContactMgr::ProcessContact
+53513       Papyrus   SkyrimScript::HandlePolicy::PersistHandle
+24014       Loading   BGSRefAlias::InitItem
+70954       Jobs      BSDynamicTriShape::UpdateVertexData
+
+# Twenty-second report-driven layer: Papyrus condition/stack processing plus
+# audio, FaceGen morphs, animation graphs, queued trees, dialogue, patrol AI,
+# container/location loading, and UI vector-shape rendering.
+12051       Papyrus   VMConditionalVariable::Resolve
+105080      Papyrus   BSScript::Internal::VirtualMachine::FindObject
+104353      Papyrus   BSScript::Internal::VirtualMachine::ProcessEventQueue
+65554       Jobs      hkaSplineCompressedAnimation::DecodeBlock
+68216       Papyrus   BSScript::Internal::MemoryPagePolicy::Allocate
+108330      Startup   BSShaderManager::CreateDefaultResources
+84583       UI        GFxMovieRoot::ProcessInputEvent
+21789       Papyrus   GetVMConditionalVariableValueFunc::Evaluate
+104213      Papyrus   BSScript::Internal::VirtualMachine::ResolveFunction
+104315      Papyrus   BSScript::Internal::VirtualMachine::ExecuteInstruction
+29876       Loading   ActorProcessManager::InitializeActor
+104588      Papyrus   BSScript::CompiledScriptLoader::ReadInstruction
+104351      Papyrus   BSScript::Internal::VirtualMachine::ProcessStacks
+65124       Resource  hkLoader::ReleaseLoadedData
+104732      Papyrus   BSScript::Internal::VirtualMachine::UpdateSuspendedStacks
+63569       Jobs      BShkbAnimationGraph::ProcessUpdate
+13023       Frame     QueuedTree::Process
+104420      Papyrus   BSScript::Internal::VirtualMachine::CallMethod
+26998       Jobs      BSFaceGenNiNode::UpdateMorphs
+26926       Jobs      BSFaceGenMorphDataHead::ApplyMorphs
+67746       Audio     BSAudioManagerThread::ThreadProc
+60016       Jobs      hkbGenerator::UpdateSync
+14688       Loading   TESForm::InitializeKeywords
+69987       Resource  BSResource::LooseFileLocation::OpenStream
+29548       Loading   DialoguePackage::InitItemImpl
+105286      Papyrus   BSScript::LinkerProcessor::LinkFunction
+53591       Papyrus   SkyrimScript::ObjectBindPolicy::ProcessUnbinds
+25083       Frame     TESQuest::UpdateQuestEvents
+105674      Render    BSShaderManager::UpdateConstants
+105143      Papyrus   SuspendedStackMessageQueue::Process
+18243       Loading   TESObjectCELL::FinalizeReferences
+37355       Jobs      PlayerCharacter::Update3D
+88298       UI        GFxConstShapeWithStyles::Display
+11913,12052 Papyrus  ExtraDataList::HasQuestObjectAlias
+28927       AI        BGSProcedurePatrol::Advance
+71136       Resource  NiSkinPartition::FinalizeLoad
+107676      Render    BSBatchRenderer::FlushPass
+17884       Loading   TESObjectCONT::Load
+18354       Loading   BGSLocation::InitItemImpl
+105077      Papyrus   BSScript::Internal::VirtualMachine::LookupObject
+105379      Papyrus   BSScript::LinkerProcessor::ResolveProperty
+105394      Papyrus   BSScript::LinkerProcessor::EmitClass
+15488       Loading   BSResource::EntryDB::FinalizeEntry
+63590       Jobs      BShkbAnimationGraph::FinalizeUpdate
+25549       Loading   TESTopic::SetFormEditorID
+104775      Papyrus   BSScript::Internal::VirtualMachine::ProcessCall
+68674       Startup   BSAudioManager::Initialize
+53590       Papyrus   SkyrimScript::ObjectBindPolicy::ProcessBinds
+
+# Twenty-third report-driven layer: deeper render/animation stages plus input,
+# actor tracking, special-idle setup, raycasts, scene packages, Mist menu,
+# parabolic shadows, rigid-body motion, and movement-driven control.
+84585       UI        GFxMovieRoot::RenderDisplayList
+106578      Jobs      BSShaderAccumulator::FinalizeGeometryJob
+76555       Render    BSCullingProcess::AppendNonAccum
+105676      Render    BSShaderManager::UpdateRenderPass
+104864      Papyrus   BSScript::Internal::VirtualMachine::ExecuteNativeCall
+65556       Jobs      hkaSplineCompressedAnimation::DecodeTracks
+107781      Render    BSRenderPass::Prepare
+63350       Jobs      BSLookAtModifier::Apply
+33007       Frame     PlayerCharacter::UpdateTargeting
+69981       Resource  BSResource::LooseFileLocation::Open
+92387       AI        MovementPlanner::ProcessGoal
+107785      Render    BSRenderPass::Finalize
+65550       Jobs      hkaSplineCompressedAnimation::SamplePartialTracks
+37944       Jobs      Character::UpdateController
+105530      Render    BSShaderManager::ApplyMaterial
+18876       Loading   TESObjectCELL::PrepareAnimatedRefs
+67090       Physics   hkpWorld::UpdateEntityBroadPhase
+83116       UI        GFxMovieRoot::ProcessKeyboardInput
+68782       Input     BSWin32KeyboardDevice::Poll
+26127       Frame     Main::UpdateWorldGeometry
+32487       Jobs      SkyrimVM::UpdateTasklets
+104798      Papyrus   BSScript::Internal::VirtualMachine::ProcessTasklet
+104331      Papyrus   BSScript::Internal::VirtualMachine::ReturnFromFunction
+32745       Jobs      CachedRaycastData::CastRay
+38009       AI        Actor::ProcessTracking
+52308       UI        MistMenu::PostDisplay
+38290,39256 AI       AIProcess::SetupSpecialIdle
+24246       AI        BGSSceneActionPackage::Update
+67098       Physics   hkpWorld::LinearCast
+108627      Render    BSShadowParabolicLight::Render
+37480       Jobs      Character::UpdateAnimationState
+108520      Render    BSGraphics::UpdateShadowResources
+61661       Physics   hkpCachingShapePhantom::SetPositionAndLinearCast
+25598       Loading   TESTopicInfo::InitItemImpl
+76259,78089 Physics  bhkRigidBody::SetLinearVelocity
+53543       Papyrus   SkyrimScript::HandlePolicy::GetObjectForHandle
+63875       AI        hkbClipAddingFunctor::AddClip
+84205       UI        GFxSprite::InvokeObjectMethod
+39516       Jobs      ActorAnimationJob::Run
+84936       UI        HUDMenu::UpdateText
+63666       Jobs      BShkbAnimationGraph::UpdateVariables
+104842      Papyrus   BSScript::Internal::VirtualMachine::ResolveNativeFunction
+69947       Resource  BSResource::RegisterPrefix::Resolve
+41703       Jobs      IMovementMotionDrivenControl::Update
+27020       Jobs      BSDynamicTriShape::UpdateVertices
+53589       Papyrus   SkyrimScript::ObjectBindPolicy::FlushPending
+13355       Frame     TES::UpdateReferences
+83766       UI        GFxMovieRoot::Advance
+25117       Frame     TESQuest::UpdateTimers
+53530       Papyrus   SkyrimScript::HandlePolicy::Update
+61329       Physics   ahkpWorld::UpdateActions
+
+# Twenty-fourth report-driven layer: first stabilized exterior-cell capture.
+# Covers combat/detection, HDR/DOF, grass occlusion, exterior camera/worldspace,
+# ground support, audio, behavior graphs, and exterior collision/streaming.
+69418       Loading   Archive::ReadEntry
+75742       Frame     QueuedFile::Complete
+75739       Resource  QueuedFile::LoadData
+85385       UI        HUDMenu::UpdateCompassMarkers
+19413       Frame     TESObjectCELL::UpdateExterior
+46902       Jobs      CombatUpdateJob
+13317       Frame     TES::UpdateExteriorWorld
+88576       UI        MapMenu::Update
+36998       Jobs      ExteriorCellUpdateJob::Run
+42742       AI        DoDetectionJob
+107183      Render    ImageSpaceEffectHDR::Render
+31741       Frame     NiCamera::Update
+107494      Render    ImageSpaceManager::RenderEffect
+31583       Frame     PlayerCamera::UpdateExterior
+11683       Jobs      ActorDetectionJob::Run
+79203       Physics   bhkCharRigidBodyController::CheckSupport
+107023      Render    ImageSpaceEffect::Render
+67727       Audio     BSAudioManager::Update
+63583       Jobs      BShkbAnimationGraph::ProcessEvents
+106350      Render    BSFadeNode::AccumulateVisible
+84204       UI        GFxSprite::Advance
+105473      AI        BSFadeNode::CreateClone
+21654       Papyrus   GameFunc::native::GetInCurrentLocAlias
+36592       AI        Main::UpdateAI
+60079       Jobs      hkbBehaviorGraph::GenerateOutput
+36561       Render    Main::UpdateRendering
+38011       Jobs      Character::UpdatePhysics
+107385      Render    ImageSpaceEffectDepthOfField::Render
+104344      Papyrus   BSScript::Internal::VirtualMachine::ProcessEvent
+32744       Jobs      CachedRaycastData::Update
+80142       Physics   bhkQuadOrientationController::UpdateSupport
+77293       Resource  BSGraphics::LoadRenderResource
+60578       Tasks     HavokWorldMaintenanceTask::Run
+32575       Papyrus   SkyrimVM::Update
+61522       Physics   ahkpWorld::ProcessCollision
+60554,61402 Physics  hkpWorld::LinearCast
+106877      Render    BSEffectShaderProperty::GetShadowRenderPasses
+106876      Render    BSEffectShaderProperty::GetRenderPasses
+106519      Render    BSGrassShaderProperty::GetOcclusionRenderPasses
+65140       Resource  hkLoader::ResolveExternalReferences
+58383       Jobs      hkbBehaviorGraph::UpdateActiveNodes
+
+# Twenty-fifth report-driven layer: exterior grid traversal, detection/combat,
+# movement planning, world casts, fonts, texture/location/idle loading,
+# simultaneous procedures, persistence, and height-field character physics.
+69029       Loading   BSFile::Read
+75634       Frame     IOManager::ProcessExteriorRequests
+75768       Resource  BSQueuedResourceCollectionBase::Process
+19414       Frame     TESObjectCELL::UpdateExteriorReferences
+70280       AI        NiNode::UpdateActorChildren
+87619       UI        GFx_DefineFont
+15959       Frame     GridCellArray::Update
+36999       Jobs      BSAnimationGraphManager::UpdateGraph
+29902       Loading   ActorProcessManager::InitializeDetection
+37774       AI        Actor::CalculateDetection
+59319       Jobs      hkbGenerator::Update
+21353       Loading   BGSTextureSet::Load
+60832       Physics   hkpShapeContainer::GetChildShapeForTask
+13288       Frame     TES::UpdateGridCells
+63783       Jobs      hkbCharacter::ProcessAnimation
+20103       AI        TESObjectREFR::UpdateDetection
+64641       Physics   hkpWorldLinearCaster::Cast
+83103       UI        GASCFunctionObject::Invoke
+53612       Papyrus   SkyrimScript::FindAttachedObjectFunctor::Run
+105071      Papyrus   BSScript::Internal::VirtualMachine::AttachObject
+105064      Papyrus   BSScript::Internal::VirtualMachine::FindAttachedObject
+92541       AI        IMovementPlannerAgent::Update
+104591      Papyrus   BSScript::CompiledScriptLoader::ReadCode
+88312       UI        GFxMovieRoot::CreateDisplayObject
+70310       AI        BSFaceGenNiNode::ProcessClone
+38565       AI        Actor::UpdateCombat
+31592       Frame     PlayerCamera::UpdateWorldspace
+18353       Loading   BGSLocation::Load
+24563       Loading   TESIdleForm::Load
+70402       Resource  BSStream::ReadObject
+69711       Tasks     BSResourceTask::ProcessCompletion
+58344       Jobs      hkbBehaviorGraph::UpdateGenerators
+38959       Jobs      ExteriorAIUpdateJob::Run
+105078      Papyrus   BSScript::Internal::VirtualMachine::DetachObject
+18895       Jobs      TESObjectCELL::UpdateExteriorObject
+28178       AI        ActorProcessManager::UpdateDetection
+11810       Papyrus   ExtraDataList::GetLeveledNPC
+24924       Loading   TESQuest::InitializeAliases
+69805       Resource  BSResource::IEntryDB::ProcessQueue
+106353      Render    NiNode::AccumulateVisible
+60821       Tasks     hkpTriSampledHeightFieldBvTreeShape::Process
+60335       Tasks     HeightFieldCollisionTask::Run
+97923,104651 Papyrus NativeFunctionBase::Call
+11786       Loading   ActorValueOwner::Initialize
+29262       AI        BGSProcedureTreeSimultaneous::Execute
+63582       Jobs      BShkbAnimationGraph::UpdateBehavior
+80106       Physics   bhkCharacterStateOnGround::Update
+13808       Loading   TESFile::LoadExteriorCell
+92192       AI        IMovementPathManagerAgent::Update
+15157,15330 Papyrus  BGSDynamicPersistenceManager::PromoteReference
+18365       Papyrus   BGSLocation::IsInLocation
+
+# Twenty-sixth report-driven layer: exterior cell loading, clone creation,
+# broadphase casts, behavior nodes, character movement, particles, impacts,
+# sound descriptors, expression/foot-IK modifiers, and actor movement.
+70289       Jobs      BSFaceGenNiNode::AttachChild
+33217       AI        ActorProcessManager::UpdatePackages
+31754       Frame     PlayerCamera::UpdatePosition
+70395       Resource  BSStream::LoadObjectData
+37003       Jobs      ExteriorReferenceUpdateJob::Run
+70648       AI        BSInstanceTriShape::CreateClone
+70279       AI        BSSceneGraph::CreateClone
+64690       Physics   hkp3AxisSweep::CastAabb
+59327       Jobs      hkbNode::Update
+60827       Tasks     HeightFieldCollisionTask::ProcessShape
+60329       Tasks     HeightFieldCollectionTask::ProcessCell
+18527       Tasks     CellLoaderTask::Run
+27455       Loading   TESObjectREFR::InitializeInventory
+91371       Loading   ActorMovementController::Finalize
+77262       Resource  BSGraphics::CreateTextureResource
+11296       Loading   AlchemyItem::Load
+104399      Papyrus   BSScript::Internal::VirtualMachine::ProcessReturn
+70244       AI        NiAVObject::Clone
+37172       Jobs      Character::UpdateMovementController
+441576      Papyrus   TESObjectREFR::DispatchScriptEvent
+39517       Jobs      ActorAnimationJob::Finalize
+105310      Papyrus   BSScript::LinkerProcessor::LinkFunctionProperties
+36752,37768 AI       Character::UpdateAI
+58377       Jobs      hkbBehaviorGraph::UpdateState
+24664       Loading   TESNPC::Copy
+443416      Resource  BSResource::ProcessQueuedCallback
+60332       Tasks     HeightFieldCollisionTask::Finalize
+60330       Tasks     HeightFieldCollisionTask::ProcessTriangles
+18474,18905 Papyrus  TESObjectCELL::GetLocation
+74543       Render    NiPSysEmitterCtlr::UpdateEmitter
+105356      Papyrus   BSScript::LinkerProcessor::ResolveFunctionProperties
+76006       Loading   BSTextureDB::QueueTexture
+58355       Jobs      hkbBehaviorGraph::UpdateTransitions
+105446      Papyrus   BSScript::LinkerProcessor::BindNativeFunction
+17653       AI        AlchemyItem::LoadGraphics
+105361      Papyrus   BSScript::LinkerProcessor::FinalizeFunctionProperties
+13428       Frame     TES::UpdateExteriorCells
+19742       Frame     TESObjectREFR::UpdateWorldspace
+51744       UI        MenuControls::Update
+80143       Physics   bhkQuadOrientationController::ApplyCorrection
+67552       Physics   hkpConvexShape::CastRay
+77478       Render    BSGraphics::UpdateRenderTargets
+74558       Render    NiPSysGravityModifier::Update
+108463      Render    BSPSysSimpleColorModifier::Update
+20858       Loading   BGSImpactDataSet::Load
+21252       Loading   BGSSoundDescriptorForm::Load
+59686       Jobs      hkbEvaluateExpressionModifier::Evaluate
+59734       Jobs      hkbFootIkControlsModifier::Update
+17885       Loading   TESObjectCONT::InitItemImpl
+31836       Jobs      BGSTerrainManager::UpdateLoadedCells
+59253       Jobs      hkbClipGenerator::Update
+39299       Jobs      ExteriorAnimationJob::Run
+41633       Jobs      ActorMover::Update
+17776       Loading   TESObjectARMOFactory::Create
+
+# Twenty-seventh report-driven layer: first stabilized dungeon capture. Covers
+# ragdolls, rooms/multibounds, traps, avoidance, movement events, quest markers,
+# nearby actors, character rigid-body callbacks, and dungeon particle systems.
+63552       Physics   BShkbAnimationGraph::UpdateRagdoll
+19165       Jobs      TESObjectCELL::UpdateRoomVisibility
+58290       Jobs      hkbRagdollDriver::Update
+32089       Frame     Main::UpdateInteriorCell
+63551       Physics   BShkbAnimationGraph::SyncRagdoll
+78009       Physics   hkpRigidBody::UpdateMotion
+75886       Render    BSMultiBoundRoom::OnVisible
+106342      Render    ShadowSceneNode::UpdateShadowCasters
+78276       Physics   bhkCharRigidBodyController::UpdateMovement
+37996       Jobs      BSTransformDeltaEventSink::Handle
+39081       AI        Job_AvoidanceManager
+37988       Jobs      PlayerCharacter::UpdateMovementState
+26053       Physics   bhkTrapListener::ProcessContact
+59303       Jobs      hkbRagdollDriver::GeneratePose
+35608,36618 Render   Main::IsRoomVisible
+15654       Jobs      ReferenceAnimationJob::Run
+41630       Jobs      ActorMover::UpdateMovement
+67555       Physics   hkpCollisionDispatcher::ProcessContact
+65646       Jobs      hkaAnimationControl::Update
+37364       Jobs      Actor::UpdateAnimationState
+64112       Jobs      hkbBehaviorGraph::UpdateRagdollState
+106401      Render    ShadowSceneNode::AccumulateCasters
+76765       Render    BSPSysMultiTargetEmitterCtlr::Update
+79186       Physics   hkpCharacterRigidBodyListener::ContactCallback
+51676       UI        FloatingQuestMarker::Update
+88846       UI        HUDMenu::UpdateQuestMarkers
+37998       Jobs      bhkCharacterMoveFinishEventSink::Handle
+79207       Physics   bhkCharRigidBodyController::FinishMove
+70540       Physics   NiAVObject::RecalculateWorldTransform
+37943       Jobs      Actor::SetMaximumMovementSpeed
+17644       Jobs      AlchemyItem::IsMarker
+36928,37953 Jobs     Actor::IsMoving
+107141      Render    BSShaderAccumulator::RenderParticles
+62932       Jobs      BGSGamebryoSequenceGenerator::Update
+43690       Jobs      CombatBehaviorJob::Run
+38785       Frame     Character::UpdatePosition
+57005       Jobs      hkaSkeletonMapper::MapPose
+70938       Jobs      BSDynamicTriShape::UpdateCollision
+41450       Jobs      NearbyActors::Insert
+92284       AI        IMovementHandlerAgent::Update
+106979      Render    NiCamera::UpdateFrustum
+36661       Render    Main::UpdateInteriorRendering
+66984       Physics   hkpSymmetricAgent::ProcessCollision
+18997       AI        TESObjectCELL::UpdateActors
+32808       Jobs      ActorProcessManager::UpdateNearbyActors
+40747       Frame     PlayerCharacter::UpdateCameraState
+92753       AI        IMovementPathManagerAgent::ProcessPath
+74716       Render    NiPSysUpdateCtlr::Update
+65560       Jobs      hkaSplineCompressedAnimation::FinalizeSample
+50785       Frame     PlayerCamera::UpdateFirstPerson
+
+# Twenty-eighth report-driven layer: final high-signal dungeon tier. Covers
+# water collision, shadows/lights, triggers, NPC avoidance, sleep procedures,
+# hazards, attack data, portals, behavior state machines, and script streaming.
+63563       Physics   BShkbAnimationGraph::UpdateRagdollWorld
+106400      Render    ShadowSceneNode::UpdateLights
+32103       Physics   BGSWaterCollisionManager::Update
+58308       Jobs      hkbRagdollDriver::DriveToPose
+63562       Physics   BShkbAnimationGraph::UpdateWorldFromModel
+60685       Physics   hkpMoppBvTreeShape::CastRay
+64767       Physics   HavokJobQueue::ProcessCollisionJob
+19163       Jobs      TESObjectCELL::UpdateRoomObjects
+91831       Jobs      MovementControllerNPC::UpdateJob
+108280      Render    BSLight::Update
+26036       Physics   TriggerEntry::Process
+76767       Render    BSGeometryListCullingProcess::Finalize
+88117       UI        GFxMovieRoot::RenderShape
+26598       Jobs      ActorEquipmentUpdateJob::Run
+41051       Frame     PlayerCharacter::UpdateInteraction
+41717       AI        MovementControllerNPC::Update
+79204       Physics   bhkCharRigidBodyController::ProcessSupport
+88271       UI        GFxMovieRoot::UpdateDisplayObject
+62452       Physics   hkpCharacterRigidBody::CheckSupport
+92200       AI        MovementAgentActorAvoider::Update
+75763       Loading   BSQueuedResourceCollectionBase::Complete
+66665       Physics   hkpBvAgent::ProcessCollision
+29136       AI        BGSProcedureSleep::Update
+60738       Physics   hkpTriangleShape::CastRay
+43691       Jobs      PlayerCharacter::UpdateCombat
+108281      Render    BSLight::Accumulate
+36567       Frame     Main::UpdateInteriorWorld
+24765       Loading   TESNPC::InitializeData
+79198       Physics   bhkCharRigidBodyController::ModifyCollisionMass
+14097       Loading   BGSAttackDataForm::Initialize
+105313      Papyrus   BSScript::UnlinkedTypes::CountInstructionInfo::Process
+41380       AI        ActorUpdateJobs::UpdateAI
+37472       Frame     Character::UpdateFrame
+69687       Resource  BSResource::ArchiveStream::Close
+76123       Render    BSPortalGraphEntry::Process
+14788       Jobs      TESForm::GetMeshNameWithoutPrefix
+11836       Jobs      ActorProcessManager::UpdateEquipment
+63761       Jobs      hkbCharacter::UpdateControllers
+62372       Physics   hkpSimpleContactConstraintData::Process
+37360       Jobs      Actor::UpdateNonRenderSafe
+59530       Jobs      hkbBlenderGenerator::Generate
+59335       Jobs      hkbStateMachine::Update
+59567       Jobs      hkbModifierGenerator::Modify
+84961       UI        HUDMenu::UpdateEffects
+92704       AI        IMovementPathManagerAgent::UpdatePath
+68532       Jobs      BSAnimationGraphManager::DispatchEvent
+104856      Papyrus   BSScript::Internal::VirtualMachine::InvokeNative
+19718       Physics   Hazard::InitHavok
+91283       Loading   ActorMovementController::InitializeCharacterState
+84122       UI        GFxSprite::UpdateTransform
+90986       AI        MovementPathManagerArbiter::UpdateAgent
+70500       AI        NiAVObject::UpdateClone
+84942       UI        HUDMenu::UpdateMessages
+107732      Render    ImageSpaceEffect::Apply
+69840       Papyrus   PrepareStreamForScriptFile
+104594      Papyrus   BSScript::CompiledScriptLoader::ReadDebugInfo
+
+# Layer 29: report/Ghidra-identified native HID worker roots.
+68940       Input     HID Device Enumeration Thread
+68931       Input     HID Device I/O Thread

@@ -55,6 +55,9 @@ namespace EngineTelemetry::ZoneHooks
 {
 	namespace
 	{
+		std::mutex                 g_installedMutex;
+		std::vector<ZoneHookData*> g_installed;
+
 		// Must match the frame layout in ZoneHookStub.asm.
 		constexpr std::size_t kContextOffset = 0xC0;
 		constexpr std::size_t kStateOffset = 0xC8;
@@ -248,7 +251,22 @@ namespace EngineTelemetry::ZoneHooks
 
 		DetourTransaction transaction;
 		transaction.Attach(&data->context.original, thunk, data->name);
-		return transaction.Commit();
+		if (!transaction.Commit()) {
+			return false;
+		}
+
+		{
+			const std::scoped_lock lock{ g_installedMutex };
+			g_installed.push_back(data);
+		}
+		return true;
+	}
+
+	const ZoneSite* FindInstalledSite(std::uintptr_t a_target) noexcept
+	{
+		const std::scoped_lock lock{ g_installedMutex };
+		const auto it = std::ranges::find(g_installed, a_target, &ZoneHookData::target);
+		return it == g_installed.end() ? nullptr : &(*it)->site;
 	}
 
 	void InstallFromFile()

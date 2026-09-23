@@ -23,6 +23,14 @@ namespace EngineTelemetry::ThreadHooks
 			ThreadRegistry::Get().OnThreadStarted(a_info.routine, a_info.createdBy, Util::GameRttiClassName(a_info.parameter));
 		}
 
+		void OnCreated(std::uintptr_t a_thread, const StartInfo& a_info)
+		{
+			const auto tid = GetThreadId(reinterpret_cast<HANDLE>(a_thread));
+			if (tid != 0) {
+				ThreadRegistry::Get().OnThreadCreated(tid, a_info.routine, a_info.createdBy, Util::GameRttiClassName(a_info.parameter));
+			}
+		}
+
 		StartInfo TakeStartInfo(void* a_info)
 		{
 			const std::unique_ptr<StartInfo> info{ static_cast<StartInfo*>(a_info) };
@@ -68,10 +76,13 @@ namespace EngineTelemetry::ThreadHooks
 			if (!info) {
 				return g_createThread(a_security, a_stackSize, a_routine, a_parameter, a_flags, a_threadId);
 			}
+			const auto createdInfo = *info;
 
 			const auto thread = g_createThread(a_security, a_stackSize, ThreadStart, info, a_flags, a_threadId);
 			if (!thread) {
 				delete info;
+			} else {
+				OnCreated(reinterpret_cast<std::uintptr_t>(thread), createdInfo);
 			}
 			return thread;
 		}
@@ -88,10 +99,13 @@ namespace EngineTelemetry::ThreadHooks
 			if (!info) {
 				return g_beginThreadEx(a_security, a_stackSize, a_routine, a_parameter, a_flags, a_threadId);
 			}
+			const auto createdInfo = *info;
 
 			const auto thread = g_beginThreadEx(a_security, a_stackSize, ThreadStartEx, info, a_flags, a_threadId);
 			if (thread == 0) {
 				delete info;
+			} else {
+				OnCreated(thread, createdInfo);
 			}
 			return thread;
 		}
@@ -102,10 +116,13 @@ namespace EngineTelemetry::ThreadHooks
 			if (!info) {
 				return g_beginThread(a_routine, a_stackSize, a_parameter);
 			}
+			const auto createdInfo = *info;
 
 			const auto thread = g_beginThread(ThreadStartVoid, a_stackSize, info);
 			if (thread == static_cast<std::uintptr_t>(-1)) {
 				delete info;
+			} else {
+				OnCreated(thread, createdInfo);
 			}
 			return thread;
 		}

@@ -3,6 +3,7 @@
 #include "Sampler/StackSampler.h"
 
 #include "Report/ReportWriter.h"
+#include "Hooks/ZoneHooks.h"
 #include "Sampler/ModuleMap.h"
 #include "Sampler/Symbolizer.h"
 #include "Settings.h"
@@ -274,6 +275,16 @@ namespace EngineTelemetry
 
 			void Record(ThreadRecord& a_record)
 			{
+				// A long-lived thread root can begin while its hook is being installed.
+				// It will never cross that entry detour, so supply the same stable site
+				// as an ambient root whenever no real nested zone is active.
+				if (_raw.zoneDepth == 0) {
+					if (const auto* root = ZoneHooks::FindInstalledSite(a_record.startAddress)) {
+						_raw.zones[0] = root;
+						_raw.zoneDepth = 1;
+					}
+				}
+
 				++_session.samples;
 				if (_raw.inSyscall) {
 					++a_record.counts.blocked;

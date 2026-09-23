@@ -64,6 +64,11 @@ namespace EngineTelemetry
 		// Called on the new thread by the thread-creation hooks' start trampoline.
 		void OnThreadStarted(std::uintptr_t a_startAddress, std::string_view a_createdBy, std::string a_rttiClass);
 
+		// Called by the creating thread as soon as the OS handle and TID exist. It
+		// closes the race where a rescan observes our trampoline before the new
+		// thread gets scheduled and reaches OnThreadStarted.
+		void OnThreadCreated(DWORD a_tid, std::uintptr_t a_startAddress, std::string_view a_createdBy, std::string a_rttiClass);
+
 		// Called on the current thread the first time it enters a SET_ZONE.
 		void AttachZoneStack(ZoneStack* a_stack);
 

@@ -22,6 +22,14 @@ The plugin is written to `build/<preset>/out/<config>/SKSE/Plugins/SkyrimEngineT
 
 Put a Skyrim `Data` directory or MO2 mod folder path in `install-prefix.txt` (gitignored), or pass `-DSET_SKYRIM_DIR=...`. With that set, every build auto-installs to `<dir>/SKSE/Plugins`, and a `deploy` target is available.
 
+For the standard local Skyrim/MO2 layout, `tools/run-mo2.ps1` configures and builds the plugin, deploys it to `C:\Modding\MO2\mods\Skyrim Engine Telemetry`, enables the mod in the selected profile, enables the sampler, and launches SKSE through MO2:
+
+```powershell
+.\tools\run-mo2.ps1 -NoWait
+```
+
+Omit `-NoWait` to keep the script attached until Skyrim exits and collect the SKSE logs into `build/game-runs/<timestamp>`.
+
 ## Profiling
 
 Tracy is built with `TRACY_ON_DEMAND`, so nothing is recorded until a Tracy profiler connects. Launch the game, then connect the Tracy profiler (0.14.0, matching the `ThirdParty/tracy` submodule) to `localhost`.
