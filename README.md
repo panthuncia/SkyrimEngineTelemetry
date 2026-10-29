@@ -14,7 +14,7 @@ cmake --preset vs2026-msvc
 cmake --build --preset relwithdebinfo-msvc
 ```
 
-The plugin is written to `build/<preset>/out/<config>/SKSE/Plugins/SkyrimEngineTelemetry.dll`.
+The plugin is written to `build/<preset>/out/<config>/SKSE/Plugins/zz_SkyrimEngineTelemetry.dll`. Its `.ini` and `.zones` keep the `SkyrimEngineTelemetry` name.
 
 `commonlib-shared` is resolved from CommonLibSSE's overlay ports (`vcpkg-configuration.json`), so the vcpkg baseline tracks the CommonLibSSE submodule's.
 
@@ -40,9 +40,19 @@ Each run writes BasicTelemetry artifacts directly to `build/game-runs/<timestamp
 
 Tracy is built with `TRACY_ON_DEMAND`, so nothing is recorded until a Tracy profiler connects. Launch the game, then connect the Tracy profiler (0.14.0, matching the `ThirdParty/tracy` submodule) to `localhost`.
 
+## Deferring to other plugins
+
+Telemetry never takes a hook another plugin wants. Some plugins (Community Shaders' DCLF among them) refuse to install over a foreign hook at a function's entry, so telemetry hooks last and steps aside:
+
+- The DLL is named `zz_SkyrimEngineTelemetry.dll`. SKSE loads plugins, and sends them messages, in file-name order, so telemetry's `kPostPostLoad` comes after every other plugin's `kPostLoad` and `kPostPostLoad`.
+- At plugin load, before any plugin's post-load hooks, telemetry records the first 14 bytes of every function it will hook.
+- At install, it skips a function whose entry changed since then, or that already jumps out of the game executable, and logs `Skipping detour` or `Skipping zone hook` with the module that holds it.
+
+A plugin that hooks later (at `kDataLoaded` or after) still finds telemetry's hook there. Remove that function's line from the zones file if it conflicts.
+
 ## Default coverage
 
-Whole-function detours, installed at `kPostLoad` in a single Detours transaction:
+Whole-function detours, installed at `kPostPostLoad` in a single Detours transaction (see [Deferring to other plugins](#deferring-to-other-plugins)):
 
 | Zone | Category | Address Library ID (SE / AE) |
 | --- | --- | --- |
@@ -58,7 +68,7 @@ Whole-function detours, installed at `kPostLoad` in a single Detours transaction
 
 ### Zones file
 
-The quickest way to add a zone is a line in `SKSE/Plugins/SkyrimEngineTelemetry.zones`, which is read at `kPostLoad`:
+The quickest way to add a zone is a line in `SKSE/Plugins/SkyrimEngineTelemetry.zones`, which is read at plugin load and installed at `kPostPostLoad`:
 
 ```
 # <id or seId,aeId>  <category>  <name>

@@ -3,6 +3,7 @@
 #include "Hooks/ZoneHooks.h"
 
 #include "Hooks/Detours.h"
+#include "Hooks/HookGuard.h"
 #include "Sampler/ModuleMap.h"
 #include "Sampler/Symbolizer.h"
 #include "Settings.h"
@@ -229,12 +230,28 @@ namespace EngineTelemetry::ZoneHooks
 			}
 			return zones;
 		}
+
+		struct LoadedZone
+		{
+			std::uintptr_t target;
+			std::string    category;
+			std::string    name;
+		};
+
+		// What LoadFile resolved, installed by InstallFromFile.
+		std::string             g_fileName;
+		std::size_t             g_lineCount{ 0 };
+		std::vector<LoadedZone> g_loaded;
 	}
 
 	bool Install(std::uintptr_t a_target, std::string_view a_name, std::string_view a_category)
 	{
 		if (!IsGameFunctionEntry(a_target)) {
 			REX::WARN("Zone hook '{}': {} is not a function entry in the game executable", a_name, Util::DescribeAddress(a_target));
+			return false;
+		}
+		if (const auto taken = HookGuard::TakenBy(a_target); !taken.empty()) {
+			REX::WARN("Skipping zone hook '{}': {}", a_name, taken);
 			return false;
 		}
 
@@ -269,7 +286,7 @@ namespace EngineTelemetry::ZoneHooks
 		return it == g_installed.end() ? nullptr : &(*it)->site;
 	}
 
-	void InstallFromFile()
+	void LoadFile()
 	{
 		const auto path = Settings::PluginSidecarPath(L".zones");
 		std::error_code ec;
@@ -294,8 +311,9 @@ namespace EngineTelemetry::ZoneHooks
 			}
 		}
 
-		const auto          base = Util::GameImage().base;
-		std::size_t         installed = 0;
+		const auto base = Util::GameImage().base;
+		g_fileName = path.filename().string();
+		g_lineCount = zones.size();
 		std::vector<std::uintptr_t> targets;
 		for (const auto& zone : zones) {
 			const auto offset = offsets.at(zone.id);
@@ -311,12 +329,24 @@ namespace EngineTelemetry::ZoneHooks
 			}
 			targets.push_back(target);
 
-			if (Install(target, zone.name, zone.category)) {
+			HookGuard::Snapshot(target);
+			g_loaded.push_back({ target, zone.category, zone.name });
+		}
+	}
+
+	void InstallFromFile()
+	{
+		if (g_loaded.empty()) {
+			return;
+		}
+
+		std::size_t installed = 0;
+		for (const auto& zone : g_loaded) {
+			if (Install(zone.target, zone.name, zone.category)) {
 				++installed;
 			}
 		}
-
-		REX::INFO("Installed {} of {} zone hooks from {}", installed, zones.size(), path.filename().string());
+		REX::INFO("Installed {} of {} zone hooks from {}", installed, g_lineCount, g_fileName);
 	}
 }
 

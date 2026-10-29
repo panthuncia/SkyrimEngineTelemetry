@@ -31,6 +31,6 @@ namespace EngineTelemetry::Settings
 
 	[[nodiscard]] HMODULE PluginModule() noexcept;
 
-	// The plugin DLL's path with its extension replaced, e.g. L".ini".
+	// SkyrimEngineTelemetry<a_extension> next to the plugin DLL, e.g. L".ini".
 	[[nodiscard]] std::filesystem::path PluginSidecarPath(std::wstring_view a_extension);
 }

@@ -91,8 +91,11 @@ namespace EngineTelemetry::Settings
 			buffer.resize(buffer.size() * 2);
 		}
 
+		// Named SkyrimEngineTelemetry.* whatever the DLL is called (it ships as
+		// zz_SkyrimEngineTelemetry.dll so SKSE loads it last).
 		std::filesystem::path path{ buffer };
-		path.replace_extension(a_extension);
+		path.replace_filename(L"SkyrimEngineTelemetry");
+		path += a_extension;
 		return path;
 	}
 }

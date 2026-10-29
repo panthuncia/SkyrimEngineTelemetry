@@ -157,18 +157,26 @@ namespace EngineTelemetry::FrameHooks
 		};
 	}
 
-	bool Install()
+	namespace
 	{
-		DetourTransaction transaction;
-		AttachFunctionDetour<Main_Update>(transaction);
-		AttachFunctionDetour<Main_RenderPlayerView>(transaction);
-		AttachFunctionDetour<Main_RenderDepth>(transaction);
-		AttachFunctionDetour<Main_RenderShadowmasks>(transaction);
-		AttachFunctionDetour<Main_RenderWorld>(transaction);
-		AttachFunctionDetour<Main_RenderFirstPersonView>(transaction);
-		AttachFunctionDetour<Main_RenderWaterEffects>(transaction);
-		AttachFunctionDetour<Renderer_Begin>(transaction);
-		AttachFunctionDetour<Renderer_End>(transaction);
-		return transaction.Commit();
+		template <class... Hooks>
+		struct HookList
+		{
+			static void Snapshot() { (SnapshotFunctionDetour<Hooks>(), ...); }
+
+			static bool Install()
+			{
+				DetourTransaction transaction;
+				(AttachFunctionDetour<Hooks>(transaction), ...);
+				return transaction.Commit();
+			}
+		};
+
+		using All = HookList<Main_Update, Main_RenderPlayerView, Main_RenderDepth, Main_RenderShadowmasks, Main_RenderWorld,
+			Main_RenderFirstPersonView, Main_RenderWaterEffects, Renderer_Begin, Renderer_End>;
 	}
+
+	void Snapshot() { All::Snapshot(); }
+
+	bool Install() { return All::Install(); }
 }

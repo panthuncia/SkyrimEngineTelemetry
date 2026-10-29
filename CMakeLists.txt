@@ -87,6 +87,8 @@ set(SET_SOURCES
 	src/Hooks/Detours.h
 	src/Hooks/FrameHooks.cpp
 	src/Hooks/FrameHooks.h
+	src/Hooks/HookGuard.cpp
+	src/Hooks/HookGuard.h
 	src/Hooks/ZoneHooks.cpp
 	src/Hooks/ZoneHooks.h
 	src/Report/ReportWriter.cpp
@@ -135,7 +137,9 @@ target_compile_definitions("${PROJECT_NAME}" PRIVATE SET_PLUGIN_VERSION_MAJOR=${
 set_target_properties(
 	"${PROJECT_NAME}"
 	PROPERTIES
-		OUTPUT_NAME "${PROJECT_NAME}"
+		# zz_: SKSE loads plugins (and sends them messages) in file-name order, so
+		# telemetry hooks after every other plugin and defers to their hooks.
+		OUTPUT_NAME "zz_${PROJECT_NAME}"
 		PREFIX ""
 		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/out/$<CONFIG>/SKSE/Plugins"
 		LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/out/$<CONFIG>/SKSE/Plugins"
@@ -180,6 +184,9 @@ install(
 install(
 	CODE "
 		set(_set_config_dir \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/SKSE/Plugins\")
+		# The DLL was SkyrimEngineTelemetry.dll before it took the zz_ prefix; a
+		# copy left behind would load first, as a second instance.
+		file(REMOVE \"\${_set_config_dir}/SkyrimEngineTelemetry.dll\" \"\${_set_config_dir}/SkyrimEngineTelemetry.pdb\")
 		if(NOT EXISTS \"\${_set_config_dir}/SkyrimEngineTelemetry.ini\")
 			file(INSTALL DESTINATION \"\${_set_config_dir}\" TYPE FILE FILES \"${CMAKE_CURRENT_SOURCE_DIR}/data/SKSE/Plugins/SkyrimEngineTelemetry.ini\")
 		endif()

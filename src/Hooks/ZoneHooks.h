@@ -10,8 +10,9 @@
 namespace EngineTelemetry::ZoneHooks
 {
 	// Detours the function starting at a_target (which must be a function entry
-	// in the game executable) with a zone named a_name. Installs in its own
-	// Detours transaction so one bad target cannot take others down with it.
+	// in the game executable, not hooked by another plugin) with a zone named
+	// a_name. Installs in its own Detours transaction so one bad target cannot
+	// take others down with it.
 	bool Install(std::uintptr_t a_target, std::string_view a_name, std::string_view a_category);
 
 	// Returns the stable site for an installed hook at exactly a_target. This is
@@ -19,10 +20,16 @@ namespace EngineTelemetry::ZoneHooks
 	// catalog was still being installed and therefore never crossed its detour.
 	[[nodiscard]] const ZoneSite* FindInstalledSite(std::uintptr_t a_target) noexcept;
 
-	// Reads SkyrimEngineTelemetry.zones next to the plugin DLL and installs a
-	// zone hook for each valid line. Format, one zone per line:
+	// Reads SkyrimEngineTelemetry.zones next to the plugin DLL, resolves each
+	// valid line and records its target's entry for HookGuard. Called at plugin
+	// load, before other plugins install their post-load hooks. Format, one zone
+	// per line:
 	//   <id> <category> <name...>        id for the running game's runtime
 	//   <seId>,<aeId> <category> <name...>
 	// Blank lines and lines starting with '#' or ';' are ignored.
+	void LoadFile();
+
+	// Installs a zone hook for each target LoadFile resolved, skipping those
+	// another plugin has hooked since.
 	void InstallFromFile();
 }

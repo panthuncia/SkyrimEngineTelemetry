@@ -23,15 +23,20 @@ namespace
 
 		switch (a_message->type) {
 		case SKSE::MessagingInterface::kPostLoad:
-			// Install as early as possible so loading screens and the main menu
-			// are covered too, not just gameplay after kDataLoaded.
+			if (EngineTelemetry::Settings::Get().samplerEnabled) {
+				EngineTelemetry::StackSampler::Start();
+			}
+			break;
+		case SKSE::MessagingInterface::kPostPostLoad:
+			// Telemetry defers to other plugins: it hooks after their kPostLoad
+			// hooks and, loading last (zz_), after their kPostPostLoad hooks, and
+			// skips any function they took. Still early enough that loading
+			// screens and the main menu are covered, not just gameplay after
+			// kDataLoaded.
 			if (!EngineTelemetry::FrameHooks::Install()) {
 				REX::CRITICAL("Failed to install frame hooks"sv);
 			}
 			EngineTelemetry::ZoneHooks::InstallFromFile();
-			if (EngineTelemetry::Settings::Get().samplerEnabled) {
-				EngineTelemetry::StackSampler::Start();
-			}
 			break;
 		case SKSE::MessagingInterface::kDataLoaded:
 			if (EngineTelemetry::Settings::Get().logThreads) {
@@ -66,6 +71,11 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 	REX::INFO("Loading {} {}"sv, PLUGIN_NAME, PLUGIN_VERSION.string());
 
 	EngineTelemetry::Settings::Load();
+
+	// The engine's entries as they are now, before other plugins' post-load
+	// hooks: one changed by install time has been taken and is skipped.
+	EngineTelemetry::FrameHooks::Snapshot();
+	EngineTelemetry::ZoneHooks::LoadFile();
 	EngineTelemetry::BasicTelemetrySession::Start();
 
 	// Hook thread creation before the engine starts most of its threads, then
